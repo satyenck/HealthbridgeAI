@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthbridgeAI - Web Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            padding: 5px 0;
+            color: #34495e;
+        }
+
+        .info-box li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .consultation-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .consultation-card:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .consultation-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .consultation-card p {
+            color: #6c757d;
+            margin: 5px 0;
+        }
+
+        .report-section {
+            margin: 20px 0;
+        }
+
+        .report-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .report-section p {
+            line-height: 1.6;
+            color: #2c3e50;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #ffeaa7;
+            color: #856404;
+        }
+
+        .status-reviewed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .nav-buttons button {
+            flex: 1;
+        }
+
+        .disclaimer {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+        }
+
+        .disclaimer p {
+            color: #856404;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .user-info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .user-info h3 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .user-info p {
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .back-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 HealthbridgeAI</h1>
+            <p>Your AI-Powered Health Companion</p>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="loginScreen" class="screen active">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Welcome</h2>
+
+                <div class="alert alert-info">
+                    <strong>Demo Mode:</strong> Since Google OAuth and Twilio aren't configured,
+                    click "Demo Login" to explore the app with test data.
+                </div>
+
+                <div class="form-group">
+                    <label>Phone Number (Optional)</label>
+                    <input type="tel" id="phoneNumber" placeholder="+1234567890">
+                </div>
+
+                <button class="btn" onclick="demoLogin()">🚀 Demo Login (Skip Authentication)</button>
+
+                <div style="margin-top: 20px; text-align: center; color: #6c757d;">
+                    <small>In production, you would authenticate with Google OAuth or phone verification</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Screen -->
+        <div id="profileScreen" class="screen">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Create Your Profile</h2>
+
+                <div class="info-box">
+                    <h3>Complete your health profile</h3>
+                    <p>This information helps our AI provide better health insights.</p>
+                </div>
+
+                <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" id="firstName" placeholder="John" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" id="lastName" placeholder="Doe" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Date of Birth *</label>
+                    <input type="date" id="dateOfBirth" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Gender *</label>
+                    <select id="gender" required>
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                        <option value="prefer_not_to_say">Prefer Not to Say</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Health Conditions (Optional)</label>
+                    <textarea id="healthCondition" placeholder="List any existing health conditions, allergies, or medications..."></textarea>
+                </div>
+
+                <button class="btn btn-success" onclick="createProfile()">Create Profile</button>
+            </div>
+        </div>
+
+        <!-- Home Screen -->
+        <div id="homeScreen" class="screen">
+            <div class="card">
+                <div class="user-info" id="userInfoDisplay"></div>
+
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Health Dashboard</h2>
+
+                <button class="btn btn-success" style="margin-bottom: 20px;" onclick="showNewConsultation()">
+                    ➕ New Consultation
+                </button>
+
+                <h3 style="color: #2c3e50; margin: 20px 0;">Your Consultations</h3>
+                <div id="consultationsList">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 10px; color: #6c757d;">Loading consultations...</p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn-secondary btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Consultation Screen -->
+        <div id="newConsultationScreen" class="screen">
+            <div class="card">
+                <button class="back-button" onclick="showHome()">← Back to Dashboard</button>
+
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">New Consultation</h2>
+
+                <div class="info-box">
+                    <h3>AI-Powered Health Analysis</h3>
+                    <ul>
+                        <li>Symptom extraction</li>
+                        <li>Potential diagnosis</li>
+                        <li>Treatment recommendations</li>
+                        <li>Next steps guidance</li>
+                    </ul>
+                </div>
+
+                <div class="form-group">
+                    <label>Describe Your Symptoms *</label>
+                    <textarea id="symptomDescription"
+                        placeholder="Example: I've been experiencing severe headaches for the past 3 days. The pain is mostly in my temples and gets worse in the afternoon. I also feel nauseous and have difficulty concentrating..."
+                        required></textarea>
+                </div>
+
+                <div class="disclaimer">
+                    <p>⚠️ <strong>Medical Disclaimer:</strong> This AI analysis is for informational purposes only and is NOT a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider.</p>
+                </div>
+
+                <button class="btn btn-success" onclick="createConsultation()">🤖 Generate AI Report</button>
+            </div>
+        </div>
+
+        <!-- Consultation Detail Screen -->
+        <div id="consultationDetailScreen" class="screen">
+            <div class="card">
+                <button class="back-button" onclick="showHome()">← Back to Dashboard</button>
+
+                <div id="consultationDetail">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let currentUser = null;
+        let currentProfile = null;
+        let authToken = null;
+
+        // Utility functions
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+
+            const card = document.querySelector('.screen.active .card');
+            card.insertBefore(alertDiv, card.firstChild);
+
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        // Demo login
+        function demoLogin() {
+            showAlert('Demo mode activated! Creating test session...', 'success');
+            setTimeout(() => {
+                authToken = 'demo-token';
+                showScreen('profileScreen');
+            }, 1000);
+        }
+
+
+        // Load home screen
+        function loadHome() {
+            showScreen('homeScreen');
+
+            // Display user info
+            if (currentProfile) {
+                document.getElementById('userInfoDisplay').innerHTML = `
+                    <h3>👋 Welcome, ${currentProfile.first_name} ${currentProfile.last_name}</h3>
+                    <p>Date of Birth: ${currentProfile.date_of_birth} | Gender: ${currentProfile.gender}</p>
+                `;
+            }
+
+            // Load consultations
+            loadConsultations();
+        }
+
+        // Load consultations
+        function loadConsultations() {
+            const consultationsList = document.getElementById('consultationsList');
+
+            // Get consultations from localStorage
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+
+            if (consultations.length === 0) {
+                consultationsList.innerHTML = `
+                    <div class="alert alert-info">
+                        <p>No consultations yet. Create your first consultation to get AI-powered health insights!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            consultationsList.innerHTML = consultations.map((consultation, index) => `
+                <div class="consultation-card" onclick="showConsultationDetail(${index})">
+                    <h3>Consultation #${consultations.length - index}</h3>
+                    <p><strong>Date:</strong> ${new Date(consultation.created_at).toLocaleDateString()}</p>
+                    <p><strong>Description:</strong> ${consultation.patient_description.substring(0, 100)}...</p>
+                    <span class="status status-${consultation.status}">${consultation.status.toUpperCase()}</span>
+                </div>
+            `).reverse().join('');
+        }
+
+        // Show new consultation screen
+        function showNewConsultation() {
+            document.getElementById('symptomDescription').value = '';
+            showScreen('newConsultationScreen');
+        }
+
+        // Create consultation
+        async function createConsultation() {
+            const description = document.getElementById('symptomDescription').value;
+
+            if (!description || description.length < 10) {
+                showAlert('Please provide a detailed description of your symptoms (at least 10 characters)', 'error');
+                return;
+            }
+
+            showAlert('Generating AI analysis... This may take a few moments.', 'info');
+
+            // Simulate AI analysis (in real app, this calls the backend)
+            const consultation = {
+                id: Date.now(),
+                patient_description: description,
+                symptoms: generateSymptoms(description),
+                potential_diagnosis: generateDiagnosis(description),
+                potential_treatment: generateTreatment(description),
+                next_steps: generateNextSteps(description),
+                status: 'pending',
+                created_at: new Date().toISOString()
+            };
+
+            // Save to localStorage
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            consultations.push(consultation);
+            localStorage.setItem('consultations', JSON.stringify(consultations));
+
+            showAlert('AI analysis complete! Viewing your consultation report...', 'success');
+
+            setTimeout(() => {
+                showConsultationDetail(consultations.length - 1);
+            }, 1500);
+        }
+
+        // Show consultation detail
+        function showConsultationDetail(index) {
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            const consultation = consultations[index];
+
+            if (!consultation) {
+                showAlert('Consultation not found', 'error');
+                return;
+            }
+
+            document.getElementById('consultationDetail').innerHTML = `
+                <h2 style="color: #2c3e50; margin-bottom: 20px;">Consultation Report</h2>
+
+                <div class="info-box">
+                    <p><strong>Date:</strong> ${new Date(consultation.created_at).toLocaleString()}</p>
+                    <p><strong>Status:</strong> <span class="status status-${consultation.status}">${consultation.status.toUpperCase()}</span></p>
+                </div>
+
+                <div class="report-section">
+                    <h3>📝 Your Description</h3>
+                    <p>${consultation.patient_description}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>🔍 Extracted Symptoms</h3>
+                    <p>${consultation.symptoms}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>🩺 Potential Diagnosis</h3>
+                    <p>${consultation.potential_diagnosis}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>💊 Treatment Recommendations</h3>
+                    <p>${consultation.potential_treatment}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>📋 Next Steps</h3>
+                    <p>${consultation.next_steps}</p>
+                </div>
+
+                <div class="disclaimer">
+                    <p>⚠️ <strong>Important:</strong> This AI-generated report is for informational purposes only. Please consult with a healthcare professional for proper medical diagnosis and treatment.</p>
+                </div>
+            `;
+
+            showScreen('consultationDetailScreen');
+        }
+
+        // AI simulation functions (mock)
+        function generateSymptoms(description) {
+            const lowerDesc = description.toLowerCase();
+            let symptoms = [];
+
+            if (lowerDesc.includes('headache') || lowerDesc.includes('head')) symptoms.push('Headache');
+            if (lowerDesc.includes('fever') || lowerDesc.includes('temperature')) symptoms.push('Fever');
+            if (lowerDesc.includes('cough')) symptoms.push('Persistent cough');
+            if (lowerDesc.includes('tired') || lowerDesc.includes('fatigue')) symptoms.push('Fatigue');
+            if (lowerDesc.includes('pain')) symptoms.push('Pain');
+            if (lowerDesc.includes('nausea') || lowerDesc.includes('nauseous')) symptoms.push('Nausea');
+
+            if (symptoms.length === 0) symptoms = ['General discomfort', 'Health concerns'];
+
+            return symptoms.join(', ') + '. Duration and severity as described in patient statement.';
+        }
+
+        function generateDiagnosis(description) {
+            const lowerDesc = description.toLowerCase();
+
+            if (lowerDesc.includes('headache') && lowerDesc.includes('temple')) {
+                return 'Based on the symptoms described, this could potentially be tension-type headaches or migraine. The temporal location and pattern suggest possible vascular involvement. Differential diagnoses to consider include stress-related tension headaches, migraine without aura, or cluster headaches.';
+            }
+
+            if (lowerDesc.includes('fever') && lowerDesc.includes('cough')) {
+                return 'Symptoms are consistent with a possible upper respiratory infection. Could be viral in nature (common cold, flu) or potentially bacterial. The combination of fever and cough warrants clinical evaluation to rule out more serious conditions such as pneumonia or bronchitis.';
+            }
+
+            return 'The symptoms described suggest a condition that requires professional medical evaluation. Based on the patient description, this could represent various conditions ranging from mild to moderate severity. A thorough clinical examination and possibly diagnostic tests would be needed for accurate diagnosis.';
+        }
+
+        function generateTreatment(description) {
+            const lowerDesc = description.toLowerCase();
+
+            if (lowerDesc.includes('headache')) {
+                return 'Initial management may include: Over-the-counter pain relievers (acetaminophen or ibuprofen as directed), adequate hydration (8-10 glasses of water daily), rest in a quiet, dark room, cold or warm compress application, stress reduction techniques. Avoid triggers such as bright lights, loud noises, and certain foods if they worsen symptoms.';
+            }
+
+            if (lowerDesc.includes('fever')) {
+                return 'Recommended approach: Monitor temperature regularly, use fever-reducing medications (acetaminophen or ibuprofen) as needed and per guidelines, maintain proper hydration, get adequate rest, dress in light clothing, use cool compresses if temperature is elevated. If fever persists beyond 3 days or exceeds 103°F (39.4°C), seek medical attention.';
+            }
+
+            return 'General care recommendations: Rest and adequate sleep (7-9 hours), maintain proper hydration, balanced nutrition, monitor symptoms closely, over-the-counter symptomatic relief as appropriate, avoid strenuous activities until symptoms improve. Keep a symptom diary to track changes and patterns.';
+        }
+
+        function generateNextSteps(description) {
+            return `1. Monitor symptoms for the next 48-72 hours and keep a detailed log of any changes.\n\n2. If symptoms worsen, persist beyond one week, or new concerning symptoms develop, schedule an appointment with your primary care physician.\n\n3. Seek immediate medical attention if you experience: severe or sudden worsening of symptoms, difficulty breathing, chest pain, confusion, high fever (>103°F/39.4°C), or any other alarming symptoms.\n\n4. Maintain a healthy lifestyle: adequate sleep, balanced diet, regular hydration, and stress management.\n\n5. Consider scheduling a routine check-up to discuss these symptoms with your healthcare provider, especially if this is a recurring issue.\n\n6. Keep this consultation report and share it with your doctor during your visit for better context.`;
+        }
+
+        // Show home
+        function showHome() {
+            loadHome();
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                authToken = null;
+                currentProfile = null;
+                showScreen('loginScreen');
+                showAlert('Logged out successfully', 'success');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            console.log('HealthbridgeAI Web UI loaded');
+            console.log('Backend API:', API_BASE);
+
+            // Check if returning user
+            const savedProfile = localStorage.getItem('currentProfile');
+            if (savedProfile) {
+                currentProfile = JSON.parse(savedProfile);
+                authToken = 'demo-token';
+                loadHome();
+            }
+        };
+
+        // Create profile
+        function createProfile() {
+            console.log('Creating profile...');
+
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const dateOfBirth = document.getElementById('dateOfBirth').value;
+            const gender = document.getElementById('gender').value;
+            const healthCondition = document.getElementById('healthCondition').value.trim();
+
+            console.log('Form values:', { firstName, lastName, dateOfBirth, gender });
+
+            if (!firstName) {
+                showAlert('Please enter your first name', 'error');
+                return;
+            }
+            if (!lastName) {
+                showAlert('Please enter your last name', 'error');
+                return;
+            }
+            if (!dateOfBirth) {
+                showAlert('Please select your date of birth', 'error');
+                return;
+            }
+            if (!gender) {
+                showAlert('Please select your gender', 'error');
+                return;
+            }
+
+            currentProfile = {
+                first_name: firstName,
+                last_name: lastName,
+                date_of_birth: dateOfBirth,
+                gender: gender,
+                health_condition: healthCondition || 'None reported'
+            };
+
+            localStorage.setItem('currentProfile', JSON.stringify(currentProfile));
+            console.log('Profile saved to localStorage');
+
+            showAlert('Profile created successfully!', 'success');
+            setTimeout(() => {
+                loadHome();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

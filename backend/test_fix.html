@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Patient Data Fix</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .step {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .result {
+            background: #e8f5e9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .clear-btn {
+            background: #f44336;
+        }
+        .clear-btn:hover {
+            background: #da190b;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Patient Data Fix</h1>
+    <p>This page will help us debug why patient data isn't being saved.</p>
+
+    <div class="step">
+        <h2>Step 1: Clear Storage</h2>
+        <button class="clear-btn" onclick="clearStorage()">Clear LocalStorage</button>
+        <div id="clearResult"></div>
+    </div>
+
+    <div class="step">
+        <h2>Step 2: Create Test Profile</h2>
+        <button onclick="createTestProfile()">Create Profile</button>
+        <div id="profileResult"></div>
+    </div>
+
+    <div class="step">
+        <h2>Step 3: Create Test Consultation</h2>
+        <button onclick="createTestConsultation()">Create Consultation</button>
+        <div id="consultationResult"></div>
+    </div>
+
+    <div class="step">
+        <h2>Step 4: Verify Data</h2>
+        <button onclick="verifyData()">Verify All Data</button>
+        <div id="verifyResult"></div>
+    </div>
+
+    <script>
+        function clearStorage() {
+            localStorage.clear();
+            document.getElementById('clearResult').innerHTML = `
+                <div class="result">✅ Storage cleared successfully</div>
+            `;
+            console.log('✅ Storage cleared');
+        }
+
+        function createTestProfile() {
+            const profile = {
+                first_name: 'John',
+                last_name: 'Doe',
+                date_of_birth: '1990-05-15',
+                gender: 'male',
+                health_condition: 'Hypertension'
+            };
+
+            localStorage.setItem('currentProfile', JSON.stringify(profile));
+
+            console.log('Created profile:', profile);
+
+            // Verify it was saved
+            const saved = localStorage.getItem('currentProfile');
+            const parsed = JSON.parse(saved);
+
+            document.getElementById('profileResult').innerHTML = `
+                <div class="result">
+                    <strong>✅ Profile created and saved:</strong><br>
+                    Name: ${parsed.first_name} ${parsed.last_name}<br>
+                    DOB: ${parsed.date_of_birth}<br>
+                    Gender: ${parsed.gender}<br>
+                    Health: ${parsed.health_condition}
+                </div>
+            `;
+        }
+
+        function createTestConsultation() {
+            // Load profile from localStorage
+            const profileData = localStorage.getItem('currentProfile');
+
+            if (!profileData) {
+                document.getElementById('consultationResult').innerHTML = `
+                    <div class="result error">
+                        ❌ ERROR: No profile found! Create profile first (Step 2)
+                    </div>
+                `;
+                return;
+            }
+
+            const profile = JSON.parse(profileData);
+            console.log('Loaded profile for consultation:', profile);
+
+            // Create consultation with profile data
+            const consultation = {
+                id: Date.now(),
+                patient_description: 'Test symptoms: headache and fever',
+                patient_name: `${profile.first_name} ${profile.last_name}`,
+                patient_dob: profile.date_of_birth,
+                patient_gender: profile.gender,
+                patient_health: profile.health_condition,
+                symptoms: 'Headache, Fever',
+                potential_diagnosis: 'Test diagnosis',
+                potential_treatment: 'Test treatment',
+                next_steps: 'Test next steps',
+                status: 'pending',
+                created_at: new Date().toISOString()
+            };
+
+            console.log('Created consultation:', consultation);
+
+            // Save to localStorage
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            consultations.push(consultation);
+            localStorage.setItem('consultations', JSON.stringify(consultations));
+
+            console.log('Saved to localStorage');
+
+            // Verify it was saved correctly
+            const saved = JSON.parse(localStorage.getItem('consultations'));
+            const lastConsultation = saved[saved.length - 1];
+
+            document.getElementById('consultationResult').innerHTML = `
+                <div class="result">
+                    <strong>✅ Consultation created and saved:</strong><br>
+                    Patient Name: <strong>${lastConsultation.patient_name}</strong><br>
+                    Patient DOB: <strong>${lastConsultation.patient_dob}</strong><br>
+                    Patient Gender: <strong>${lastConsultation.patient_gender}</strong><br>
+                    Patient Health: <strong>${lastConsultation.patient_health}</strong><br>
+                    Status: ${lastConsultation.status}
+                </div>
+            `;
+        }
+
+        function verifyData() {
+            let html = '<div class="result">';
+
+            // Check profile
+            const profile = localStorage.getItem('currentProfile');
+            if (profile) {
+                const p = JSON.parse(profile);
+                html += `<strong>✅ Profile exists:</strong><br>`;
+                html += `&nbsp;&nbsp;Name: ${p.first_name} ${p.last_name}<br>`;
+                html += `&nbsp;&nbsp;DOB: ${p.date_of_birth}<br>`;
+                html += `&nbsp;&nbsp;Gender: ${p.gender}<br><br>`;
+            } else {
+                html += `<strong class="error">❌ No profile found</strong><br><br>`;
+            }
+
+            // Check consultations
+            const consultations = localStorage.getItem('consultations');
+            if (consultations) {
+                const cons = JSON.parse(consultations);
+                html += `<strong>✅ Consultations found: ${cons.length}</strong><br>`;
+
+                cons.forEach((c, index) => {
+                    const hasName = c.patient_name && c.patient_name !== 'Anonymous Patient';
+                    const hasDOB = c.patient_dob && c.patient_dob !== 'Not provided';
+                    const hasGender = c.patient_gender && c.patient_gender !== 'Not provided';
+
+                    html += `<br><strong>Consultation #${index + 1}:</strong><br>`;
+                    html += `&nbsp;&nbsp;Name: ${hasName ? '✅' : '❌'} ${c.patient_name || 'MISSING'}<br>`;
+                    html += `&nbsp;&nbsp;DOB: ${hasDOB ? '✅' : '❌'} ${c.patient_dob || 'MISSING'}<br>`;
+                    html += `&nbsp;&nbsp;Gender: ${hasGender ? '✅' : '❌'} ${c.patient_gender || 'MISSING'}<br>`;
+                });
+            } else {
+                html += `<strong class="error">❌ No consultations found</strong><br>`;
+            }
+
+            html += '</div>';
+
+            document.getElementById('verifyResult').innerHTML = html;
+
+            // Also log to console
+            console.log('=== VERIFICATION ===');
+            console.log('Profile:', JSON.parse(localStorage.getItem('currentProfile')));
+            console.log('Consultations:', JSON.parse(localStorage.getItem('consultations') || '[]'));
+        }
+
+        // Auto-verify on page load
+        window.onload = function() {
+            if (localStorage.getItem('currentProfile') || localStorage.getItem('consultations')) {
+                verifyData();
+            }
+        };
+    </script>
+</body>
+</html>

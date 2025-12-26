@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Storage - HealthbridgeAI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            color: #28a745;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #bee5eb;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        ul {
+            text-align: left;
+            margin: 20px 0;
+            line-height: 1.8;
+        }
+
+        .cleared-items {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .cleared-items p {
+            margin: 5px 0;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">🗑️</div>
+        <h1>Storage Cleared Successfully!</h1>
+
+        <div class="success" style="font-size: 1.2em; margin: 20px 0;">
+            ✓ All data has been removed from localStorage
+        </div>
+
+        <div class="cleared-items" id="clearedItems">
+            <p><strong>Cleared items:</strong></p>
+        </div>
+
+        <div class="info">
+            <strong>What was cleared:</strong>
+            <ul>
+                <li>User sessions and profiles</li>
+                <li>All consultations</li>
+                <li>Patient and doctor data</li>
+                <li>All temporary data</li>
+            </ul>
+        </div>
+
+        <div>
+            <button class="btn btn-success" onclick="window.location.href='web_ui_doctor.html'">
+                Open Doctor Portal (Fresh Start)
+            </button>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button class="btn" onclick="window.location.href='web_ui.html'">
+                Open Patient Portal (Fresh Start)
+            </button>
+        </div>
+
+        <div style="margin-top: 30px; color: #6c757d; font-size: 14px;">
+            <p>You can now create new profiles and consultations with clean data.</p>
+        </div>
+    </div>
+
+    <script>
+        // Get items before clearing
+        const itemsBefore = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            itemsBefore.push(key);
+        }
+
+        // Clear localStorage
+        localStorage.clear();
+
+        // Display what was cleared
+        const clearedItemsDiv = document.getElementById('clearedItems');
+        if (itemsBefore.length > 0) {
+            clearedItemsDiv.innerHTML = `
+                <p><strong>Cleared items (${itemsBefore.length}):</strong></p>
+                ${itemsBefore.map(item => `<p>✓ ${item}</p>`).join('')}
+            `;
+        } else {
+            clearedItemsDiv.innerHTML = `
+                <p><strong>Storage was already empty</strong></p>
+            `;
+        }
+
+        console.log('✓ localStorage cleared successfully');
+        console.log('Cleared items:', itemsBefore);
+    </script>
+</body>
+</html>

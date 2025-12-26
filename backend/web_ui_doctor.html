@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthbridgeAI - Doctor Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-doctor {
+            background: #17a2b8;
+        }
+
+        .btn-doctor:hover {
+            background: #138496;
+        }
+
+        .role-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .role-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+
+        .role-card:hover {
+            background: #e9ecef;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .role-card.selected {
+            border-color: #667eea;
+            background: #e8f4f8;
+        }
+
+        .role-card h3 {
+            font-size: 1.5em;
+            margin: 15px 0;
+            color: #2c3e50;
+        }
+
+        .role-card .icon {
+            font-size: 3em;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .consultation-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .consultation-card:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .consultation-card.pending {
+            border-left-color: #ffc107;
+        }
+
+        .consultation-card.reviewed {
+            border-left-color: #28a745;
+        }
+
+        .consultation-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .consultation-card p {
+            color: #6c757d;
+            margin: 5px 0;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-reviewed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .report-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .report-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .report-section p, .report-section textarea {
+            line-height: 1.6;
+            color: #2c3e50;
+        }
+
+        .editable-section {
+            background: white;
+            border: 2px dashed #dee2e6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .editable-section.editing {
+            border-color: #667eea;
+            background: #f0f8ff;
+        }
+
+        .back-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background: #5a6268;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .stat-card.active {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.5);
+        }
+
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+        }
+
+        .patient-info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .patient-info h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .patient-info p {
+            color: #6c757d;
+            margin: 5px 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 HealthbridgeAI</h1>
+            <p id="headerSubtitle">Your AI-Powered Health Companion</p>
+            <div id="roleBadge" style="display: none;"></div>
+        </div>
+
+        <!-- Login/Role Selection Screen -->
+        <div id="loginScreen" class="screen active">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Welcome to HealthbridgeAI</h2>
+
+                <div class="alert alert-info">
+                    <strong>Demo Mode:</strong> Select your role to explore the platform.
+                </div>
+
+                <h3 style="color: #2c3e50; margin: 20px 0;">Select Your Role:</h3>
+
+                <div class="role-selector">
+                    <div class="role-card" onclick="selectRole('patient')">
+                        <div class="icon">👤</div>
+                        <h3>Patient</h3>
+                        <p>Get AI-powered health consultations</p>
+                    </div>
+
+                    <div class="role-card" onclick="selectRole('doctor')">
+                        <div class="icon">👨‍⚕️</div>
+                        <h3>Doctor</h3>
+                        <p>Review and manage patient consultations</p>
+                    </div>
+                </div>
+
+                <div id="loginForm" style="display: none; margin-top: 30px;">
+                    <div class="form-group">
+                        <label id="nameLabel">Name</label>
+                        <input type="text" id="userName" placeholder="Enter your name">
+                    </div>
+
+                    <button class="btn" id="loginButton" onclick="demoLogin()">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doctor Dashboard -->
+        <div id="doctorDashboard" class="screen">
+            <div class="card">
+                <div id="doctorInfo" class="patient-info"></div>
+
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Doctor Dashboard</h2>
+
+                <div class="stats-grid">
+                    <div class="stat-card" id="pendingCard" onclick="filterConsultations('pending')">
+                        <h3 id="pendingCount">0</h3>
+                        <p>Pending Consultations</p>
+                    </div>
+                    <div class="stat-card" id="reviewedCard" onclick="filterConsultations('reviewed_today')">
+                        <h3 id="reviewedCount">0</h3>
+                        <p>Reviewed Today</p>
+                    </div>
+                    <div class="stat-card" id="allCard" onclick="filterConsultations('all')">
+                        <h3 id="totalPatients">0</h3>
+                        <p>Total Consultations</p>
+                    </div>
+                </div>
+
+                <h3 style="color: #2c3e50; margin: 20px 0;" id="consultationsHeader">Pending Consultations</h3>
+                <div id="doctorConsultationsList"></div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn-secondary btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doctor Review Screen -->
+        <div id="doctorReviewScreen" class="screen">
+            <div class="card">
+                <button class="back-button" onclick="showDoctorDashboard()">← Back to Dashboard</button>
+
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Review Consultation</h2>
+
+                <div id="reviewPatientInfo" class="patient-info"></div>
+
+                <div id="consultationReview"></div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="approveConsultation()">✓ Approve & Mark as Reviewed</button>
+                    <button class="btn-secondary btn" onclick="showDoctorDashboard()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient Profile Screen (from original) -->
+        <div id="profileScreen" class="screen">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Create Your Profile</h2>
+
+                <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" id="firstName" placeholder="John" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" id="lastName" placeholder="Doe" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Date of Birth *</label>
+                    <input type="date" id="dateOfBirth" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Gender *</label>
+                    <select id="gender" required>
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                        <option value="prefer_not_to_say">Prefer Not to Say</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Health Conditions (Optional)</label>
+                    <textarea id="healthCondition" placeholder="List any existing health conditions, allergies, or medications..."></textarea>
+                </div>
+
+                <button class="btn btn-success" onclick="createProfile()">Create Profile</button>
+            </div>
+        </div>
+
+        <!-- Patient Home Screen -->
+        <div id="homeScreen" class="screen">
+            <div class="card">
+                <div id="userInfoDisplay" class="patient-info"></div>
+
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Health Dashboard</h2>
+
+                <button class="btn btn-success" style="margin-bottom: 20px;" onclick="showNewConsultation()">
+                    ➕ New Consultation
+                </button>
+
+                <h3 style="color: #2c3e50; margin: 20px 0;">Your Consultations</h3>
+                <div id="consultationsList"></div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn-secondary btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Consultation Screen -->
+        <div id="newConsultationScreen" class="screen">
+            <div class="card">
+                <button class="back-button" onclick="showHome()">← Back to Dashboard</button>
+
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">New Consultation</h2>
+
+                <div id="profileCheck" class="patient-info" style="margin-bottom: 20px;">
+                    <h4>Creating consultation for:</h4>
+                    <p id="consultationPatientInfo">Loading...</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Describe Your Symptoms *</label>
+                    <textarea id="symptomDescription"
+                        placeholder="Example: I've been experiencing severe headaches for the past 3 days. The pain is mostly in my temples and gets worse in the afternoon. I also feel nauseous and have difficulty concentrating..."
+                        required></textarea>
+                </div>
+
+                <button class="btn btn-success" onclick="createConsultation()">🤖 Generate AI Report</button>
+            </div>
+        </div>
+
+        <!-- Consultation Detail Screen -->
+        <div id="consultationDetailScreen" class="screen">
+            <div class="card">
+                <button class="back-button" onclick="showHome()">← Back to Dashboard</button>
+                <div id="consultationDetail"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentUser = null;
+        let currentProfile = null;
+        let currentRole = null;
+        let currentReviewingConsultation = null;
+        let currentFilter = 'pending'; // Default filter
+
+        // Utility functions
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+
+            const card = document.querySelector('.screen.active .card');
+            card.insertBefore(alertDiv, card.firstChild);
+
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        function updateRoleBadge() {
+            const badge = document.getElementById('roleBadge');
+            const subtitle = document.getElementById('headerSubtitle');
+
+            if (currentRole) {
+                badge.style.display = 'block';
+                badge.className = 'role-badge';
+
+                if (currentRole === 'doctor') {
+                    badge.textContent = '👨‍⚕️ Doctor Portal';
+                    subtitle.textContent = 'Professional Healthcare Management';
+                } else {
+                    badge.textContent = '👤 Patient Portal';
+                    subtitle.textContent = 'Your AI-Powered Health Companion';
+                }
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Role selection
+        function selectRole(role) {
+            currentRole = role;
+
+            // Update UI
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.target.closest('.role-card').classList.add('selected');
+
+            // Show login form
+            document.getElementById('loginForm').style.display = 'block';
+
+            const nameLabel = document.getElementById('nameLabel');
+            const loginButton = document.getElementById('loginButton');
+
+            if (role === 'doctor') {
+                nameLabel.textContent = 'Doctor Name *';
+                document.getElementById('userName').placeholder = 'Dr. Smith';
+                loginButton.textContent = 'Continue as Doctor';
+                loginButton.className = 'btn btn-doctor';
+            } else {
+                nameLabel.textContent = 'Your Name *';
+                document.getElementById('userName').placeholder = 'John Doe';
+                loginButton.textContent = 'Continue as Patient';
+                loginButton.className = 'btn btn-success';
+            }
+        }
+
+        // Demo login
+        function demoLogin() {
+            const userName = document.getElementById('userName').value.trim();
+
+            if (!userName) {
+                showAlert('Please enter your name', 'error');
+                return;
+            }
+
+            currentUser = {
+                name: userName,
+                role: currentRole,
+                id: Date.now()
+            };
+
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateRoleBadge();
+
+            if (currentRole === 'doctor') {
+                showDoctorDashboard();
+            } else {
+                showScreen('profileScreen');
+            }
+        }
+
+        // Doctor Dashboard
+        function showDoctorDashboard() {
+            showScreen('doctorDashboard');
+
+            // Display doctor info
+            document.getElementById('doctorInfo').innerHTML = `
+                <h4>👨‍⚕️ ${currentUser.name}</h4>
+                <p>Role: Healthcare Professional</p>
+            `;
+
+            loadDoctorConsultations();
+        }
+
+        function loadDoctorConsultations(filter = 'pending') {
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            const pending = consultations.filter(c => c.status === 'pending');
+            const reviewed = consultations.filter(c => c.status === 'reviewed');
+            const today = new Date().toDateString();
+            const reviewedToday = reviewed.filter(c => {
+                return new Date(c.reviewed_at || 0).toDateString() === today;
+            });
+
+            // Update stats
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('reviewedCount').textContent = reviewedToday.length;
+            document.getElementById('totalPatients').textContent = consultations.length;
+
+            // Update active stat card
+            document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active'));
+            if (filter === 'pending') {
+                document.getElementById('pendingCard').classList.add('active');
+            } else if (filter === 'reviewed_today') {
+                document.getElementById('reviewedCard').classList.add('active');
+            } else if (filter === 'all') {
+                document.getElementById('allCard').classList.add('active');
+            }
+
+            // Determine which consultations to show based on filter
+            let displayConsultations = [];
+            let headerText = '';
+
+            if (filter === 'pending') {
+                displayConsultations = pending;
+                headerText = `Pending Consultations (${pending.length})`;
+            } else if (filter === 'reviewed_today') {
+                displayConsultations = reviewedToday;
+                headerText = `Reviewed Today (${reviewedToday.length})`;
+            } else if (filter === 'all') {
+                displayConsultations = consultations;
+                headerText = `All Consultations (${consultations.length})`;
+            }
+
+            // Update header
+            document.getElementById('consultationsHeader').textContent = headerText;
+
+            // Display consultations
+            const list = document.getElementById('doctorConsultationsList');
+
+            if (displayConsultations.length === 0) {
+                let emptyMessage = '';
+                if (filter === 'pending') {
+                    emptyMessage = '✓ No pending consultations. All caught up!';
+                } else if (filter === 'reviewed_today') {
+                    emptyMessage = 'No consultations reviewed today yet.';
+                } else {
+                    emptyMessage = 'No consultations in the system yet.';
+                }
+
+                list.innerHTML = `
+                    <div class="alert alert-info">
+                        <p>${emptyMessage}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = displayConsultations.map((consultation) => {
+                const consultationIndex = consultations.indexOf(consultation);
+                const statusClass = consultation.status === 'pending' ? 'pending' : 'reviewed';
+                const statusText = consultation.status === 'pending' ? 'PENDING REVIEW' : 'REVIEWED';
+                const statusBadgeClass = consultation.status === 'pending' ? 'status-pending' : 'status-reviewed';
+
+                return `
+                    <div class="consultation-card ${statusClass}" onclick="reviewConsultation(${consultationIndex})">
+                        <h3>Consultation #${consultation.id}</h3>
+                        <p><strong>Date:</strong> ${new Date(consultation.created_at).toLocaleString()}</p>
+                        <p><strong>Patient:</strong> ${consultation.patient_name || 'Anonymous Patient'}</p>
+                        <p><strong>Chief Complaint:</strong> ${consultation.patient_description.substring(0, 100)}...</p>
+                        <span class="status ${statusBadgeClass}">${statusText}</span>
+                        ${consultation.reviewed_by ? `<p style="margin-top: 10px;"><strong>Reviewed by:</strong> ${consultation.reviewed_by} on ${new Date(consultation.reviewed_at).toLocaleString()}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterConsultations(filter) {
+            currentFilter = filter;
+            loadDoctorConsultations(filter);
+        }
+
+        function reviewConsultation(index) {
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            currentReviewingConsultation = index;
+            const consultation = consultations[index];
+
+            document.getElementById('reviewPatientInfo').innerHTML = `
+                <h4>Patient Information</h4>
+                <p><strong>Name:</strong> ${consultation.patient_name || 'Anonymous Patient'}</p>
+                <p><strong>Date of Birth:</strong> ${consultation.patient_dob || 'Not provided'}</p>
+                <p><strong>Gender:</strong> ${consultation.patient_gender || 'Not provided'}</p>
+                <p><strong>Health History:</strong> ${consultation.patient_health || 'None reported'}</p>
+            `;
+
+            document.getElementById('consultationReview').innerHTML = `
+                <div class="report-section">
+                    <h3>📝 Patient Description</h3>
+                    <p>${consultation.patient_description}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>🔍 AI-Extracted Symptoms</h3>
+                    <div class="editable-section" id="symptomsSection">
+                        <p>${consultation.symptoms}</p>
+                        <button class="btn-warning btn" style="margin-top: 10px;" onclick="editSection('symptoms')">✏️ Edit Symptoms</button>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h3>🩺 AI Diagnosis</h3>
+                    <div class="editable-section" id="diagnosisSection">
+                        <p>${consultation.potential_diagnosis}</p>
+                        <button class="btn-warning btn" style="margin-top: 10px;" onclick="editSection('diagnosis')">✏️ Edit Diagnosis</button>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h3>💊 Treatment Plan</h3>
+                    <div class="editable-section" id="treatmentSection">
+                        <p>${consultation.potential_treatment}</p>
+                        <button class="btn-warning btn" style="margin-top: 10px;" onclick="editSection('treatment')">✏️ Edit Treatment</button>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h3>📋 Next Steps</h3>
+                    <div class="editable-section" id="stepsSection">
+                        <p style="white-space: pre-line;">${consultation.next_steps}</p>
+                        <button class="btn-warning btn" style="margin-top: 10px;" onclick="editSection('steps')">✏️ Edit Next Steps</button>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h3>👨‍⚕️ Doctor's Notes</h3>
+                    <textarea id="doctorNotes" placeholder="Add your professional notes here..." style="width: 100%; min-height: 100px; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">${consultation.doctor_notes || ''}</textarea>
+                </div>
+            `;
+
+            showScreen('doctorReviewScreen');
+        }
+
+        function editSection(section) {
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            const consultation = consultations[currentReviewingConsultation];
+
+            const sectionMap = {
+                'symptoms': { key: 'symptoms', label: 'Symptoms' },
+                'diagnosis': { key: 'potential_diagnosis', label: 'Diagnosis' },
+                'treatment': { key: 'potential_treatment', label: 'Treatment' },
+                'steps': { key: 'next_steps', label: 'Next Steps' }
+            };
+
+            const { key, label } = sectionMap[section];
+            const sectionEl = document.getElementById(`${section}Section`);
+
+            sectionEl.classList.add('editing');
+            sectionEl.innerHTML = `
+                <textarea id="${section}Edit" style="width: 100%; min-height: 150px; padding: 10px; border: 2px solid #667eea; border-radius: 8px;">${consultation[key]}</textarea>
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="saveSection('${section}')">💾 Save ${label}</button>
+                    <button class="btn-secondary btn" onclick="cancelEdit('${section}')">Cancel</button>
+                </div>
+            `;
+        }
+
+        function saveSection(section) {
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            const consultation = consultations[currentReviewingConsultation];
+
+            const sectionMap = {
+                'symptoms': 'symptoms',
+                'diagnosis': 'potential_diagnosis',
+                'treatment': 'potential_treatment',
+                'steps': 'next_steps'
+            };
+
+            const key = sectionMap[section];
+            const newValue = document.getElementById(`${section}Edit`).value;
+
+            consultation[key] = newValue;
+            consultation.modified_by_doctor = true;
+            consultation.doctor_name = currentUser.name;
+
+            localStorage.setItem('consultations', JSON.stringify(consultations));
+
+            showAlert(`${section.charAt(0).toUpperCase() + section.slice(1)} updated successfully!`, 'success');
+            reviewConsultation(currentReviewingConsultation);
+        }
+
+        function cancelEdit(section) {
+            reviewConsultation(currentReviewingConsultation);
+        }
+
+        function approveConsultation() {
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            const consultation = consultations[currentReviewingConsultation];
+
+            consultation.status = 'reviewed';
+            consultation.reviewed_by = currentUser.name;
+            consultation.reviewed_at = new Date().toISOString();
+            consultation.doctor_notes = document.getElementById('doctorNotes').value;
+
+            localStorage.setItem('consultations', JSON.stringify(consultations));
+
+            showAlert('Consultation approved and marked as reviewed!', 'success');
+
+            // Switch to "reviewed today" filter to show the newly reviewed consultation
+            currentFilter = 'reviewed_today';
+            setTimeout(() => {
+                showScreen('doctorDashboard');
+                loadDoctorConsultations(currentFilter);
+            }, 1500);
+        }
+
+        // Patient functions (from original)
+        function createProfile() {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const dateOfBirth = document.getElementById('dateOfBirth').value;
+            const gender = document.getElementById('gender').value;
+            const healthCondition = document.getElementById('healthCondition').value.trim();
+
+            if (!firstName || !lastName || !dateOfBirth || !gender) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+
+            currentProfile = {
+                first_name: firstName,
+                last_name: lastName,
+                date_of_birth: dateOfBirth,
+                gender: gender,
+                health_condition: healthCondition || 'None reported'
+            };
+
+            localStorage.setItem('currentProfile', JSON.stringify(currentProfile));
+
+            showAlert('Profile created successfully!', 'success');
+            setTimeout(() => showHome(), 1000);
+        }
+
+        function showHome() {
+            showScreen('homeScreen');
+
+            // Load profile from localStorage if not in memory
+            if (!currentProfile) {
+                const savedProfile = localStorage.getItem('currentProfile');
+                if (savedProfile) {
+                    currentProfile = JSON.parse(savedProfile);
+                }
+            }
+
+            if (currentProfile) {
+                document.getElementById('userInfoDisplay').innerHTML = `
+                    <h4>👋 Welcome, ${currentProfile.first_name} ${currentProfile.last_name}</h4>
+                    <p>DOB: ${currentProfile.date_of_birth} | Gender: ${currentProfile.gender}</p>
+                `;
+            }
+
+            loadConsultations();
+        }
+
+        function loadConsultations() {
+            const consultationsList = document.getElementById('consultationsList');
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+
+            if (consultations.length === 0) {
+                consultationsList.innerHTML = `
+                    <div class="alert alert-info">
+                        <p>No consultations yet. Create your first consultation to get AI-powered health insights!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            consultationsList.innerHTML = consultations.map((consultation, index) => `
+                <div class="consultation-card ${consultation.status}" onclick="showConsultationDetail(${index})">
+                    <h3>Consultation #${consultation.id}</h3>
+                    <p><strong>Date:</strong> ${new Date(consultation.created_at).toLocaleDateString()}</p>
+                    <p><strong>Description:</strong> ${consultation.patient_description.substring(0, 100)}...</p>
+                    <span class="status status-${consultation.status}">${consultation.status.toUpperCase()}</span>
+                    ${consultation.reviewed_by ? `<p style="margin-top: 10px;"><strong>Reviewed by:</strong> ${consultation.reviewed_by}</p>` : ''}
+                </div>
+            `).reverse().join('');
+        }
+
+        function showNewConsultation() {
+            console.log('=== SHOW NEW CONSULTATION ===');
+
+            // Force reload profile from localStorage
+            const savedProfile = localStorage.getItem('currentProfile');
+            console.log('Saved profile from localStorage:', savedProfile);
+
+            if (!savedProfile) {
+                console.error('ERROR: No profile in localStorage!');
+                showAlert('Please create your profile first before creating a consultation.', 'error');
+                setTimeout(() => showScreen('profileScreen'), 2000);
+                return;
+            }
+
+            currentProfile = JSON.parse(savedProfile);
+            console.log('Profile loaded:', currentProfile);
+
+            if (!currentProfile.first_name || !currentProfile.last_name) {
+                console.error('ERROR: Profile incomplete!');
+                showAlert('Your profile is incomplete. Please update your profile.', 'error');
+                setTimeout(() => showScreen('profileScreen'), 2000);
+                return;
+            }
+
+            // Show profile info on the consultation screen
+            const profileInfo = document.getElementById('consultationPatientInfo');
+            profileInfo.innerHTML = `
+                <strong>Name:</strong> ${currentProfile.first_name} ${currentProfile.last_name}<br>
+                <strong>DOB:</strong> ${currentProfile.date_of_birth}<br>
+                <strong>Gender:</strong> ${currentProfile.gender}
+            `;
+
+            document.getElementById('symptomDescription').value = '';
+            showScreen('newConsultationScreen');
+        }
+
+        function createConsultation() {
+            const description = document.getElementById('symptomDescription').value;
+
+            if (!description || description.length < 10) {
+                showAlert('Please provide a detailed description of your symptoms', 'error');
+                return;
+            }
+
+            // Ensure profile is loaded from localStorage
+            if (!currentProfile) {
+                const savedProfile = localStorage.getItem('currentProfile');
+                if (savedProfile) {
+                    currentProfile = JSON.parse(savedProfile);
+                }
+            }
+
+            console.log('=== CREATING CONSULTATION ===');
+            console.log('Current profile:', currentProfile);
+
+            if (!currentProfile || !currentProfile.first_name) {
+                console.error('ERROR: No valid profile found!');
+                showAlert('Error: No profile found. Please create your profile first.', 'error');
+                setTimeout(() => showScreen('profileScreen'), 2000);
+                return;
+            }
+
+            const patientName = `${currentProfile.first_name} ${currentProfile.last_name}`;
+            console.log('Patient name for consultation:', patientName);
+
+            const consultation = {
+                id: Date.now(),
+                patient_description: description,
+                patient_name: patientName,
+                patient_dob: currentProfile.date_of_birth,
+                patient_gender: currentProfile.gender,
+                patient_health: currentProfile.health_condition || 'None reported',
+                symptoms: generateSymptoms(description),
+                potential_diagnosis: generateDiagnosis(description),
+                potential_treatment: generateTreatment(description),
+                next_steps: generateNextSteps(description),
+                status: 'pending',
+                created_at: new Date().toISOString()
+            };
+
+            console.log('=== CONSULTATION CREATED ===');
+            console.log('Patient Name:', consultation.patient_name);
+            console.log('Patient DOB:', consultation.patient_dob);
+            console.log('Patient Gender:', consultation.patient_gender);
+            console.log('Full consultation object:', consultation);
+
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            consultations.push(consultation);
+            localStorage.setItem('consultations', JSON.stringify(consultations));
+
+            console.log('=== SAVED TO LOCALSTORAGE ===');
+            console.log('Total consultations:', consultations.length);
+            console.log('Latest consultation:', consultations[consultations.length - 1]);
+
+            // Verify it was saved correctly
+            const verification = JSON.parse(localStorage.getItem('consultations'));
+            const savedConsultation = verification[verification.length - 1];
+            console.log('=== VERIFICATION ===');
+            console.log('Saved patient name:', savedConsultation.patient_name);
+            console.log('Saved patient DOB:', savedConsultation.patient_dob);
+            console.log('Saved patient gender:', savedConsultation.patient_gender);
+
+            showAlert(`AI analysis complete! Created for: ${consultation.patient_name}`, 'success');
+            setTimeout(() => showConsultationDetail(consultations.length - 1), 1500);
+        }
+
+        function showConsultationDetail(index) {
+            const consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+            const consultation = consultations[index];
+
+            document.getElementById('consultationDetail').innerHTML = `
+                <h2 style="color: #2c3e50; margin-bottom: 20px;">Consultation Report</h2>
+
+                <div class="patient-info">
+                    <p><strong>Date:</strong> ${new Date(consultation.created_at).toLocaleString()}</p>
+                    <p><strong>Status:</strong> <span class="status status-${consultation.status}">${consultation.status.toUpperCase()}</span></p>
+                    ${consultation.reviewed_by ? `<p><strong>Reviewed by:</strong> ${consultation.reviewed_by} on ${new Date(consultation.reviewed_at).toLocaleString()}</p>` : ''}
+                </div>
+
+                <div class="report-section">
+                    <h3>📝 Your Description</h3>
+                    <p>${consultation.patient_description}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>🔍 Extracted Symptoms</h3>
+                    <p>${consultation.symptoms}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>🩺 Potential Diagnosis</h3>
+                    <p>${consultation.potential_diagnosis}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>💊 Treatment Recommendations</h3>
+                    <p>${consultation.potential_treatment}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>📋 Next Steps</h3>
+                    <p style="white-space: pre-line;">${consultation.next_steps}</p>
+                </div>
+
+                ${consultation.doctor_notes ? `
+                    <div class="report-section">
+                        <h3>👨‍⚕️ Doctor's Notes</h3>
+                        <p>${consultation.doctor_notes}</p>
+                    </div>
+                ` : ''}
+            `;
+
+            showScreen('consultationDetailScreen');
+        }
+
+        // AI simulation functions
+        function generateSymptoms(description) {
+            const lowerDesc = description.toLowerCase();
+            let symptoms = [];
+
+            if (lowerDesc.includes('headache') || lowerDesc.includes('head')) symptoms.push('Headache');
+            if (lowerDesc.includes('fever') || lowerDesc.includes('temperature')) symptoms.push('Fever');
+            if (lowerDesc.includes('cough')) symptoms.push('Persistent cough');
+            if (lowerDesc.includes('tired') || lowerDesc.includes('fatigue')) symptoms.push('Fatigue');
+            if (lowerDesc.includes('pain')) symptoms.push('Pain');
+            if (lowerDesc.includes('nausea') || lowerDesc.includes('nauseous')) symptoms.push('Nausea');
+            if (lowerDesc.includes('stomach') || lowerDesc.includes('abdomen')) symptoms.push('Abdominal discomfort');
+            if (lowerDesc.includes('breath')) symptoms.push('Respiratory symptoms');
+
+            if (symptoms.length === 0) symptoms = ['General discomfort', 'Health concerns'];
+
+            return symptoms.join(', ') + '. Duration and severity as described in patient statement.';
+        }
+
+        function generateDiagnosis(description) {
+            const lowerDesc = description.toLowerCase();
+
+            if (lowerDesc.includes('headache') && lowerDesc.includes('temple')) {
+                return 'Based on the symptoms described, this could potentially be tension-type headaches or migraine. The temporal location and pattern suggest possible vascular involvement. Differential diagnoses to consider include stress-related tension headaches, migraine without aura, or cluster headaches.';
+            }
+
+            if (lowerDesc.includes('fever') && lowerDesc.includes('cough')) {
+                return 'Symptoms are consistent with a possible upper respiratory infection. Could be viral in nature (common cold, flu) or potentially bacterial. The combination of fever and cough warrants clinical evaluation to rule out more serious conditions such as pneumonia or bronchitis.';
+            }
+
+            if (lowerDesc.includes('stomach') || lowerDesc.includes('abdomen')) {
+                return 'Abdominal symptoms warrant careful evaluation. Differential diagnoses include gastroenteritis, appendicitis (if right lower quadrant), peptic ulcer disease, or inflammatory bowel conditions. Location, duration, and associated symptoms are key factors in determining the underlying cause.';
+            }
+
+            return 'The symptoms described suggest a condition that requires professional medical evaluation. Based on the patient description, this could represent various conditions ranging from mild to moderate severity. A thorough clinical examination and possibly diagnostic tests would be needed for accurate diagnosis.';
+        }
+
+        function generateTreatment(description) {
+            const lowerDesc = description.toLowerCase();
+
+            if (lowerDesc.includes('headache')) {
+                return 'Initial management may include: Over-the-counter pain relievers (acetaminophen or ibuprofen as directed), adequate hydration (8-10 glasses of water daily), rest in a quiet, dark room, cold or warm compress application, stress reduction techniques. Avoid triggers such as bright lights, loud noises, and certain foods if they worsen symptoms.';
+            }
+
+            if (lowerDesc.includes('fever')) {
+                return 'Recommended approach: Monitor temperature regularly, use fever-reducing medications (acetaminophen or ibuprofen) as needed and per guidelines, maintain proper hydration, get adequate rest, dress in light clothing, use cool compresses if temperature is elevated. If fever persists beyond 3 days or exceeds 103°F (39.4°C), seek medical attention.';
+            }
+
+            return 'General care recommendations: Rest and adequate sleep (7-9 hours), maintain proper hydration, balanced nutrition, monitor symptoms closely, over-the-counter symptomatic relief as appropriate, avoid strenuous activities until symptoms improve. Keep a symptom diary to track changes and patterns.';
+        }
+
+        function generateNextSteps(description) {
+            return `1. Monitor symptoms for the next 48-72 hours and keep a detailed log of any changes.
+
+2. If symptoms worsen, persist beyond one week, or new concerning symptoms develop, schedule an appointment with your primary care physician.
+
+3. Seek immediate medical attention if you experience: severe or sudden worsening of symptoms, difficulty breathing, chest pain, confusion, high fever (>103°F/39.4°C), or any other alarming symptoms.
+
+4. Maintain a healthy lifestyle: adequate sleep, balanced diet, regular hydration, and stress management.
+
+5. Consider scheduling a routine check-up to discuss these symptoms with your healthcare provider, especially if this is a recurring issue.`;
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                currentUser = null;
+                currentProfile = null;
+                currentRole = null;
+                localStorage.removeItem('currentUser');
+                showScreen('loginScreen');
+                document.getElementById('loginForm').style.display = 'none';
+                document.querySelectorAll('.role-card').forEach(card => card.classList.remove('selected'));
+                updateRoleBadge();
+                showAlert('Logged out successfully', 'success');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            console.log('HealthbridgeAI Doctor Portal loaded');
+
+            // Load saved profile first
+            const savedProfile = localStorage.getItem('currentProfile');
+            if (savedProfile) {
+                currentProfile = JSON.parse(savedProfile);
+                console.log('Loaded saved profile:', currentProfile);
+            }
+
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                currentRole = currentUser.role;
+                updateRoleBadge();
+
+                if (currentRole === 'doctor') {
+                    showDoctorDashboard();
+                } else {
+                    if (currentProfile) {
+                        showHome();
+                    } else {
+                        showScreen('profileScreen');
+                    }
+                }
+            }
+        };
+    </script>
+</body>
+</html>

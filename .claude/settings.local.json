@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(pytest:*)",
+      "Bash(psql:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(npx react-native doctor)",
+      "Bash(xcode-select:*)",
+      "Bash(bundle exec pod:*)",
+      "Bash(lsof:*)",
+      "Bash(cp:*)",
+      "Bash(brew services:*)",
+      "Bash(timeout 5 python:*)",
+      "Bash(npm install)",
+      "Bash(pod install)",
+      "Bash(npx react-native start)",
+      "Bash(npm install:*)",
+      "Bash(npm run web:*)",
+      "Bash(sudo gem install:*)",
+      "Bash(gem install:*)",
+      "Bash(export PATH=\"$HOME/.gem/ruby/2.6.0/bin:$PATH\")",
+      "Bash(brew install:*)",
+      "Bash(sudo xcode-select:*)",
+      "Bash(npm run ios:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(cat:*)",
+      "Bash(uvicorn:*)",
+      "Bash(npx react-native start --reset-cache)",
+      "Bash(tail:*)",
+      "Bash(kill:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Storage - HealthbridgeAI</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4ec9b0;
+        }
+        .section {
+            background: #252526;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4ec9b0;
+        }
+        .section h2 {
+            color: #569cd6;
+            margin-top: 0;
+        }
+        pre {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border: 1px solid #3c3c3c;
+        }
+        .key {
+            color: #9cdcfe;
+        }
+        .string {
+            color: #ce9178;
+        }
+        .number {
+            color: #b5cea8;
+        }
+        .boolean {
+            color: #569cd6;
+        }
+        .btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #1177bb;
+        }
+        .error {
+            color: #f48771;
+        }
+        .success {
+            color: #4ec9b0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 HealthbridgeAI Storage Debugger</h1>
+
+        <div class="section">
+            <h2>Current Profile</h2>
+            <div id="profileData"></div>
+        </div>
+
+        <div class="section">
+            <h2>Current User</h2>
+            <div id="userData"></div>
+        </div>
+
+        <div class="section">
+            <h2>All Consultations</h2>
+            <div id="consultationsData"></div>
+        </div>
+
+        <div class="section">
+            <h2>Quick Actions</h2>
+            <button class="btn" onclick="location.reload()">Refresh Data</button>
+            <button class="btn" onclick="window.location.href='clear_storage.html'">Clear All Storage</button>
+            <button class="btn" onclick="window.location.href='web_ui_doctor.html'">Open Doctor Portal</button>
+        </div>
+    </div>
+
+    <script>
+        function displayData() {
+            // Profile
+            const profile = localStorage.getItem('currentProfile');
+            const profileDiv = document.getElementById('profileData');
+            if (profile) {
+                const profileObj = JSON.parse(profile);
+                profileDiv.innerHTML = `
+                    <pre>${JSON.stringify(profileObj, null, 2)}</pre>
+                    <p class="success">✓ Profile exists with ${Object.keys(profileObj).length} properties</p>
+                `;
+            } else {
+                profileDiv.innerHTML = '<p class="error">✗ No profile found in localStorage</p>';
+            }
+
+            // User
+            const user = localStorage.getItem('currentUser');
+            const userDiv = document.getElementById('userData');
+            if (user) {
+                const userObj = JSON.parse(user);
+                userDiv.innerHTML = `
+                    <pre>${JSON.stringify(userObj, null, 2)}</pre>
+                    <p class="success">✓ User exists (Role: ${userObj.role})</p>
+                `;
+            } else {
+                userDiv.innerHTML = '<p class="error">✗ No user found in localStorage</p>';
+            }
+
+            // Consultations
+            const consultations = localStorage.getItem('consultations');
+            const consultationsDiv = document.getElementById('consultationsData');
+            if (consultations) {
+                const consultationsArray = JSON.parse(consultations);
+                consultationsDiv.innerHTML = `
+                    <p class="success">✓ Found ${consultationsArray.length} consultation(s)</p>
+                    ${consultationsArray.map((c, index) => `
+                        <div style="margin: 20px 0; padding: 15px; background: #1e1e1e; border-radius: 5px;">
+                            <h3 style="color: #dcdcaa;">Consultation #${index + 1}</h3>
+                            <p><strong>ID:</strong> ${c.id}</p>
+                            <p><strong>Patient Name:</strong> <span class="${c.patient_name && c.patient_name !== 'Anonymous Patient' ? 'success' : 'error'}">${c.patient_name || 'MISSING'}</span></p>
+                            <p><strong>DOB:</strong> <span class="${c.patient_dob && c.patient_dob !== 'Not provided' ? 'success' : 'error'}">${c.patient_dob || 'MISSING'}</span></p>
+                            <p><strong>Gender:</strong> <span class="${c.patient_gender && c.patient_gender !== 'Not provided' ? 'success' : 'error'}">${c.patient_gender || 'MISSING'}</span></p>
+                            <p><strong>Health History:</strong> ${c.patient_health || 'None'}</p>
+                            <p><strong>Status:</strong> ${c.status}</p>
+                            <details>
+                                <summary style="cursor: pointer; color: #569cd6; margin: 10px 0;">Show Full Object</summary>
+                                <pre style="margin-top: 10px;">${JSON.stringify(c, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `).join('')}
+                `;
+            } else {
+                consultationsDiv.innerHTML = '<p class="error">✗ No consultations found in localStorage</p>';
+            }
+        }
+
+        // Display data on load
+        displayData();
+
+        // Auto-refresh every 2 seconds to see changes
+        setInterval(() => {
+            console.log('Auto-refreshing storage data...');
+            displayData();
+        }, 2000);
+    </script>
+</body>
+</html>

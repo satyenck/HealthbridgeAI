@@ -950,6 +950,143 @@ async def analyze_encounter_vitals(
         )
 
 
+@router.post("/{encounter_id}/extract-report-fields")
+async def extract_report_fields_from_voice(
+    encounter_id: UUID,
+    voice_request: VoiceTranscriptionRequest,
+    current_doctor: User = Depends(get_current_doctor),
+    db: Session = Depends(get_db)
+):
+    """
+    Extract structured report fields from doctor's voice recording.
+    Doctor speaks all updates, AI extracts which content belongs to which field.
+    Returns structured data for review before saving.
+    """
+    # Verify encounter exists
+    encounter = db.query(Encounter).filter(
+        Encounter.encounter_id == encounter_id
+    ).first()
+
+    if not encounter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Encounter not found"
+        )
+
+    # Get existing summary report for context
+    summary = db.query(SummaryReport).filter(
+        SummaryReport.encounter_id == encounter_id
+    ).first()
+
+    existing_content = summary.content if summary else None
+
+    try:
+        # Transcribe voice
+        transcription = openai_service.transcribe_audio(voice_request.audio_base64)
+
+        # Extract fields using new OpenAI service method
+        extracted_fields = openai_service.extract_report_fields_from_voice(
+            transcription=transcription,
+            existing_content=existing_content
+        )
+
+        return {
+            "transcription": transcription,
+            "extracted_fields": extracted_fields,
+            "existing_content": existing_content
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to extract fields: {str(e)}"
+        )
+
+
+@router.post("/{encounter_id}/start-call")
+async def start_voice_call(
+    encounter_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Initialize a voice/video call for an encounter.
+    Returns Agora credentials and channel info.
+    """
+    # Verify encounter exists and user has access
+    encounter = db.query(Encounter).filter(
+        Encounter.encounter_id == encounter_id
+    ).first()
+
+    if not encounter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Encounter not found"
+        )
+
+    # Authorization: only patient or assigned doctor
+    if current_user.role == UserRole.PATIENT:
+        if encounter.patient_id != current_user.user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    elif current_user.role == UserRole.DOCTOR:
+        if encounter.doctor_id != current_user.user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+    # Generate Agora token and channel
+    from app.services.agora_service import agora_service
+    call_data = agora_service.generate_call_token(
+        channel_name=f"encounter_{encounter_id}",
+        user_id=str(current_user.user_id)
+    )
+
+    return call_data
+
+
+@router.post("/{encounter_id}/process-call-recording")
+async def process_call_recording(
+    encounter_id: UUID,
+    voice_request: VoiceTranscriptionRequest,
+    current_doctor: User = Depends(get_current_doctor),
+    db: Session = Depends(get_db)
+):
+    """
+    Process recorded call audio:
+    1. Transcribe entire conversation
+    2. Extract medical information (symptoms, diagnosis, treatment, etc.)
+    3. Present to doctor for review
+
+    This endpoint does NOT update the encounter automatically.
+    It returns extracted data for doctor review.
+    """
+    # Verify encounter
+    encounter = db.query(Encounter).filter(
+        Encounter.encounter_id == encounter_id
+    ).first()
+
+    if not encounter:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    try:
+        # Transcribe call recording
+        transcription = openai_service.transcribe_audio(voice_request.audio_base64)
+
+        # Extract medical information from conversation
+        extracted_data = openai_service.extract_medical_info_from_conversation(
+            conversation_transcription=transcription
+        )
+
+        return {
+            "transcription": transcription,
+            "extracted_data": extracted_data
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process call recording: {str(e)}"
+        )
+
+
 # ============================================================================
 # LAB ORDERS AND PRESCRIPTIONS
 # ============================================================================
@@ -1068,3 +1205,57 @@ async def create_prescription_for_encounter(
     db.refresh(new_prescription)
 
     return new_prescription
+
+
+@router.get("/{encounter_id}/translate-summary")
+async def translate_summary_to_gujarati(
+    encounter_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Translate encounter summary report to Gujarati while keeping medical terms in English.
+    """
+    # Get encounter
+    encounter = db.query(Encounter).filter(
+        Encounter.encounter_id == encounter_id
+    ).first()
+
+    if not encounter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Encounter not found"
+        )
+
+    # Check access - patient can only access their own, doctors can access assigned encounters
+    if current_user.role == UserRole.PATIENT:
+        if encounter.patient_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+    elif current_user.role == UserRole.DOCTOR:
+        if encounter.doctor_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+
+    # Get summary report
+    summary = db.query(SummaryReport).filter(
+        SummaryReport.encounter_id == encounter_id
+    ).first()
+
+    if not summary:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Summary report not found"
+        )
+
+    # Translate to Gujarati
+    translated_content = openai_service.translate_consultation_to_gujarati(summary.content)
+
+    return {
+        "translated_content": translated_content,
+        "original_content": summary.content
+    }

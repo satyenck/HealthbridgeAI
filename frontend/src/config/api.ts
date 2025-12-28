@@ -43,9 +43,9 @@ export const API_ENDPOINTS = {
   TRANSLATE_SUMMARY: (id: string) => `/api/encounters/${id}/translate-summary`,
 
   // Media Files
-  ENCOUNTER_MEDIA: (id: string) => `/api/encounters/${id}/media/`,
+  ENCOUNTER_MEDIA: (id: string) => `/api/encounters/${id}/media`,
   ENCOUNTER_MEDIA_FILE: (encounterId: string, fileId: string) =>
-    `/api/encounters/${encounterId}/media/${fileId}/`,
+    `/api/encounters/${encounterId}/media/${fileId}`,
 
   // Voice Processing
   VOICE_TRANSCRIBE: '/api/encounters/voice/transcribe/',

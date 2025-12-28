@@ -147,16 +147,26 @@ export const mediaService = {
    */
   async pickVideo(): Promise<MediaFile | null> {
     try {
+      console.log('Launching video picker...');
       const result = await launchImageLibrary({
         mediaType: 'video',
         selectionLimit: 1,
       });
 
-      if (result.didCancel || !result.assets || result.assets.length === 0) {
+      console.log('Video picker result:', JSON.stringify(result, null, 2));
+
+      if (result.didCancel) {
+        console.log('User cancelled video picker');
+        return null;
+      }
+
+      if (!result.assets || result.assets.length === 0) {
+        console.log('No video assets returned');
         return null;
       }
 
       const asset = result.assets[0];
+      console.log('Video asset:', JSON.stringify(asset, null, 2));
 
       // Validate file size (60MB for ~1 min video)
       if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE) {
@@ -165,13 +175,17 @@ export const mediaService = {
         );
       }
 
-      return {
+      const mediaFile = {
         uri: asset.uri || '',
         type: asset.type || 'video/mp4',
         name: asset.fileName || 'video.mp4',
         size: asset.fileSize || 0,
       };
+
+      console.log('Returning video file:', JSON.stringify(mediaFile, null, 2));
+      return mediaFile;
     } catch (err) {
+      console.error('Video picker error:', err);
       throw err;
     }
   },

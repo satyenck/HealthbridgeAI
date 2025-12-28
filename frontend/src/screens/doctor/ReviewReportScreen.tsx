@@ -8,11 +8,21 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
+  Image,
+  Linking,
+  Dimensions,
+  Platform,
 } from 'react-native';
+import Share from 'react-native-share';
+import RNFS from 'react-native-fs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import FileViewer from 'react-native-file-viewer';
 import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {encounterService} from '../../services/encounterService';
-import {SummaryReport, ReportStatus, Priority, SummaryReportContent} from '../../types';
+import {SummaryReport, ReportStatus, Priority, SummaryReportContent, ComprehensiveEncounter, MediaFile} from '../../types';
+import {API_CONFIG, API_ENDPOINTS} from '../../config/api';
 import {SendToLabModal} from '../../components/SendToLabModal';
 import {SendToPharmacyModal} from '../../components/SendToPharmacyModal';
 import {VoiceReportEditorModal} from '../../components/VoiceReportEditorModal';
@@ -20,6 +30,7 @@ import {VoiceReportEditorModal} from '../../components/VoiceReportEditorModal';
 export const ReviewReportScreen = ({route, navigation}: any) => {
   const {encounterId} = route.params;
   const [report, setReport] = useState<SummaryReport | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -35,6 +46,8 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
   const [showLabModal, setShowLabModal] = useState(false);
   const [showPharmacyModal, setShowPharmacyModal] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<MediaFile | null>(null);
+  const [showFileViewer, setShowFileViewer] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,9 +58,17 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
   const loadReport = async () => {
     try {
       setLoading(true);
-      const data = await encounterService.getSummaryReport(encounterId);
-      setReport(data);
-      populateForm(data);
+      const data = await encounterService.getEncounterDetail(encounterId);
+
+      // Extract summary report and media files from comprehensive encounter
+      if (data.summary_report) {
+        setReport(data.summary_report);
+        populateForm(data.summary_report);
+      }
+
+      if (data.media_files) {
+        setMediaFiles(data.media_files);
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load report');
       navigation.goBack();
@@ -107,6 +128,111 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
       Alert.alert('Error', error.message || 'Failed to save report');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleViewFile = async (file: MediaFile) => {
+    const isImage = file.file_type.startsWith('image/') || file.file_type === 'image';
+    const isPDF = file.file_type === 'application/pdf' || file.file_type === 'pdf' || file.file_type === 'document';
+    const isVideo = file.file_type.startsWith('video/') || file.file_type === 'video';
+
+    try {
+      const token = await AsyncStorage.getItem('access_token');
+
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      const fileUrl = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.ENCOUNTER_MEDIA_FILE(encounterId, file.file_id)}`;
+      const localFilePath = `${RNFS.DocumentDirectoryPath}/${file.filename}`;
+
+      if (isImage) {
+        // Download image with authentication and display in modal
+        setLoading(true);
+        const downloadResult = await RNFS.downloadFile({
+          fromUrl: fileUrl,
+          toFile: localFilePath,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }).promise;
+
+        if (downloadResult.statusCode === 200) {
+          // Set the local file path for display
+          setSelectedFile({...file, file_path: localFilePath});
+          setShowFileViewer(true);
+        } else {
+          Alert.alert('Error', 'Failed to load image');
+        }
+        setLoading(false);
+      } else if (isPDF || isVideo) {
+        // Download PDF/Video with authentication and open
+        setLoading(true);
+        const downloadResult = await RNFS.downloadFile({
+          fromUrl: fileUrl,
+          toFile: localFilePath,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }).promise;
+
+        if (downloadResult.statusCode === 200) {
+          console.log('File downloaded to:', localFilePath);
+
+          // Check if file exists
+          const fileExists = await RNFS.exists(localFilePath);
+          console.log('File exists:', fileExists);
+
+          if (!fileExists) {
+            Alert.alert('Error', 'Downloaded file not found');
+            setLoading(false);
+            return;
+          }
+
+          try {
+            if (isVideo) {
+              // For videos, use Share API directly (works better in simulator)
+              await Share.open({
+                url: localFilePath,
+                type: 'video/*',
+                title: file.filename,
+                failOnCancel: false,
+              });
+            } else {
+              // For PDFs, use FileViewer
+              await FileViewer.open(localFilePath, {
+                showOpenWithDialog: true,
+                showAppsSuggestions: true,
+              });
+            }
+          } catch (viewerError: any) {
+            console.error('File viewer error:', viewerError);
+
+            // If it's a "user cancelled" error, don't show alert
+            if (viewerError.message && viewerError.message.includes('User did not share')) {
+              console.log('User cancelled share sheet');
+              // Just close silently
+            } else {
+              Alert.alert(
+                'Unable to Open File',
+                Platform.OS === 'ios' && __DEV__
+                  ? 'File viewing may not work properly in the simulator. Please test on a real device.'
+                  : `Error: ${viewerError.message || 'Unknown error'}`
+              );
+            }
+          }
+        } else {
+          Alert.alert('Error', `Failed to download ${isPDF ? 'PDF' : 'video'} file`);
+        }
+        setLoading(false);
+      } else {
+        Alert.alert('Unsupported File', 'This file type cannot be previewed');
+      }
+    } catch (error: any) {
+      console.error('File download error:', error);
+      Alert.alert('Error', `Unable to open file: ${error.message || 'Unknown error'}`);
+      setLoading(false);
     }
   };
 
@@ -228,6 +354,43 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
           />
         </View>
 
+        {/* Patient Uploaded Files */}
+        {mediaFiles.length > 0 && (
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Patient Uploaded Files</Text>
+            <View style={styles.filesContainer}>
+              {mediaFiles.map((file) => {
+                const isImage = file.file_type.startsWith('image/') || file.file_type === 'image';
+                const isPDF = file.file_type === 'application/pdf' || file.file_type === 'pdf' || file.file_type === 'document';
+                const isVideo = file.file_type.startsWith('video/') || file.file_type === 'video';
+                const fileSize = (file.file_size / 1024).toFixed(1); // Convert to KB
+
+                return (
+                  <TouchableOpacity
+                    key={file.file_id}
+                    style={styles.fileCard}
+                    onPress={() => handleViewFile(file)}>
+                    <Icon
+                      name={isImage ? 'image' : isPDF ? 'picture-as-pdf' : isVideo ? 'videocam' : 'insert-drive-file'}
+                      size={40}
+                      color={isImage ? '#4CAF50' : isPDF ? '#f44336' : isVideo ? '#9C27B0' : '#757575'}
+                    />
+                    <View style={styles.fileInfo}>
+                      <Text style={styles.fileName} numberOfLines={1}>
+                        {file.filename}
+                      </Text>
+                      <Text style={styles.fileDetails}>
+                        {fileSize} KB • {new Date(file.uploaded_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <Icon name="visibility" size={24} color="#757575" />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Send to Lab and Pharmacy buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity
@@ -291,6 +454,33 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
           setShowVoiceModal(false);
         }}
       />
+
+      {/* Image Viewer Modal */}
+      <Modal
+        visible={showFileViewer}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFileViewer(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.imageViewerContainer}>
+            <View style={styles.imageViewerHeader}>
+              <Text style={styles.imageViewerTitle} numberOfLines={1}>
+                {selectedFile?.filename}
+              </Text>
+              <TouchableOpacity onPress={() => setShowFileViewer(false)}>
+                <Icon name="close" size={28} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            {selectedFile && (
+              <Image
+                source={{uri: Platform.OS === 'ios' ? selectedFile.file_path : `file://${selectedFile.file_path}`}}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {editing && (
         <View style={styles.footer}>
@@ -436,5 +626,61 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+  filesContainer: {
+    gap: 12,
+  },
+  fileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    gap: 12,
+  },
+  fileInfo: {
+    flex: 1,
+  },
+  fileName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  fileDetails: {
+    fontSize: 12,
+    color: '#757575',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerContainer: {
+    width: '100%',
+    height: '100%',
+  },
+  imageViewerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  imageViewerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    flex: 1,
+    marginRight: 16,
+  },
+  fullScreenImage: {
+    flex: 1,
+    width: '100%',
   },
 });

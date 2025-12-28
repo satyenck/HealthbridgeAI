@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     TWILIO_AUTH_TOKEN: Optional[str] = None
     TWILIO_PHONE_NUMBER: Optional[str] = None
 
+    # Agora (Video/Audio Calls)
+    AGORA_APP_ID: Optional[str] = None
+    AGORA_APP_CERTIFICATE: Optional[str] = None
+
     # App
     APP_NAME: str = "HealthbridgeAI"
     DEBUG: bool = False

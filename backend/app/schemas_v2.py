@@ -521,7 +521,7 @@ class PhoneLoginRequest(BaseModel):
 class VoiceTranscriptionRequest(BaseModel):
     """Request for voice transcription"""
     encounter_id: Optional[UUID4] = None
-    audio_file_path: str
+    audio_base64: str
 
 
 class VoiceTranscriptionResponse(BaseModel):

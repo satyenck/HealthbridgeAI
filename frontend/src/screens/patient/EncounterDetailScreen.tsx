@@ -11,6 +11,7 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Tts from 'react-native-tts';
 import {encounterService} from '../../services/encounterService';
@@ -41,9 +42,11 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
   const [translating, setTranslating] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  useEffect(() => {
-    loadEncounter();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadEncounter();
+    }, [encounterId])
+  );
 
   useEffect(() => {
     // Initialize TTS with proper error handling

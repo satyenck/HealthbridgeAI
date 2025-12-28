@@ -817,7 +817,7 @@ async def transcribe_voice(
 @router.post("/{encounter_id}/generate-summary", response_model=SummaryReportResponse)
 async def generate_ai_summary(
     encounter_id: UUID,
-    patient_description: str,
+    request: dict,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -847,6 +847,14 @@ async def generate_ai_summary(
     elif current_user.role == UserRole.DOCTOR:
         # Doctors can generate summaries for any encounter they're working on
         pass
+
+    # Extract patient_description from request body
+    patient_description = request.get('patient_description', '')
+    if not patient_description:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="patient_description is required"
+        )
 
     try:
         summary_report = encounter_service.generate_ai_summary(

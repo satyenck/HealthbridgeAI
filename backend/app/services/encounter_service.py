@@ -9,7 +9,7 @@ from app.models_v2 import (
     SummaryReport, ReportStatus, Priority
 )
 from app.schemas_v2 import SummaryReportContent
-from app.services.openai_service import openai_service
+from app.services.gemini_service import gemini_service
 
 
 class EncounterService:
@@ -74,7 +74,7 @@ class EncounterService:
         lab_results_dict = latest_lab_results.metrics if latest_lab_results else None
 
         # Generate AI summary report
-        report_content = openai_service.generate_summary_report(
+        report_content = gemini_service.generate_summary_report(
             patient_description=patient_description,
             health_history=health_history,
             vitals=vitals_dict,
@@ -84,7 +84,7 @@ class EncounterService:
         # Assess priority if enabled
         priority = None
         if auto_assess_priority:
-            priority_str = openai_service.assess_priority(
+            priority_str = gemini_service.assess_priority(
                 symptoms=report_content.get("symptoms", ""),
                 vitals=vitals_dict
             )
@@ -124,7 +124,7 @@ class EncounterService:
             Dictionary with transcription and summary report
         """
         # Transcribe audio
-        transcription = openai_service.transcribe_audio(audio_base64)
+        transcription = gemini_service.transcribe_audio(audio_base64)
 
         # Generate summary report from transcription
         summary_report = EncounterService.generate_ai_summary(
@@ -188,7 +188,7 @@ class EncounterService:
         }
 
         # Get AI analysis
-        analysis = openai_service.analyze_vitals(
+        analysis = gemini_service.analyze_vitals(
             vitals=vitals_dict,
             health_history=health_history
         )

@@ -7,7 +7,7 @@ from app.schemas_v2 import (
     VoiceTranscriptionRequest
 )
 from app.auth import get_current_active_user, get_current_patient
-from app.services.openai_service import openai_service
+from app.services.gemini_service import gemini_service
 import json
 
 router = APIRouter(prefix="/api/profile", tags=["Profile"])
@@ -115,7 +115,7 @@ async def transcribe_voice(
     Transcribe voice input to text for profile creation
     """
     try:
-        transcription = openai_service.transcribe_audio(voice_request.audio_base64)
+        transcription = gemini_service.transcribe_audio(voice_request.audio_base64)
         return {"transcription": transcription}
     except Exception as e:
         raise HTTPException(
@@ -133,7 +133,7 @@ async def parse_voice_profile(
     Transcribe voice and extract profile information using AI
     """
     try:
-        transcription = openai_service.transcribe_audio(voice_request.audio_base64)
+        transcription = gemini_service.transcribe_audio(voice_request.audio_base64)
 
         prompt = f"""Extract the following profile information from this transcription: "{transcription}"
 
@@ -146,7 +146,7 @@ Please extract and return a JSON object with these fields:
 
 If any field is not mentioned, use null."""
 
-        response = openai_service.client.chat.completions.create(
+        response = gemini_service.client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts structured profile information from text."},
@@ -377,7 +377,7 @@ async def get_health_insights(
     }
 
     # Generate AI insights in requested language
-    ai_insights = openai_service.generate_health_insights(patient_data, language=language)
+    ai_insights = gemini_service.generate_health_insights(patient_data, language=language)
 
     # Build response with lab and pharmacy names
     pending_labs_data = []

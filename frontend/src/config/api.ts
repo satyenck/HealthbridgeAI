@@ -48,7 +48,7 @@ export const API_ENDPOINTS = {
     `/api/encounters/${encounterId}/media/${fileId}`,
 
   // Voice Processing
-  VOICE_TRANSCRIBE: '/api/encounters/voice/transcribe/',
+  VOICE_TRANSCRIBE: '/api/encounters/voice/transcribe',
   PROCESS_VOICE: (id: string) => `/api/encounters/${id}/process-voice`,
   VITALS_ANALYSIS: (id: string) => `/api/encounters/${id}/vitals-analysis/`,
   EXTRACT_REPORT_FIELDS: (id: string) => `/api/encounters/${id}/extract-report-fields`,
@@ -104,4 +104,9 @@ export const API_ENDPOINTS = {
   ADMIN_DOCTORS: '/api/admin/doctors',
   ADMIN_LABS: '/api/admin/labs',
   ADMIN_PHARMACIES: '/api/admin/pharmacies',
+
+  // ============================================================================
+  // HEALTH ASSISTANT
+  // ============================================================================
+  HEALTH_ASSISTANT_INTERVIEW: '/api/health-assistant/interview',
 };

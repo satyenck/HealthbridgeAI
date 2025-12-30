@@ -376,4 +376,5 @@ export const encounterService = {
       },
     );
   },
+
 };

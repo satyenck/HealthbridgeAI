@@ -86,10 +86,21 @@ export const HomeScreen = ({navigation}: any) => {
     navigation.navigate('EncounterDetail', {encounterId: encounter.encounter_id});
   };
 
+  const handleHealthAssistant = () => {
+    navigation.navigate('HealthAssistant');
+  };
+
   const renderQuickActions = () => (
     <View style={styles.quickActions}>
       <Text style={styles.sectionTitle}>New Consultation</Text>
       <View style={styles.actionsGrid}>
+        <TouchableOpacity
+          style={[styles.actionButton, {backgroundColor: '#9C27B0'}]}
+          onPress={handleHealthAssistant}>
+          <Icon name="health-and-safety" size={32} color="#fff" />
+          <Text style={styles.actionText}>Health Assistant</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.actionButton, {backgroundColor: '#2196F3'}]}
           onPress={() => handleNewEncounter(EncounterType.REMOTE_CONSULT)}>
@@ -186,11 +197,11 @@ const styles = StyleSheet.create({
   },
   actionsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: 12,
   },
   actionButton: {
-    flex: 1,
+    width: '48%',
     aspectRatio: 1,
     borderRadius: 12,
     justifyContent: 'center',

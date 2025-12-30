@@ -27,7 +27,7 @@ from app.schemas_v2 import (
     LabOrderRequest, PrescriptionRequest
 )
 from app.auth import get_current_active_user, get_current_doctor, get_current_patient
-from app.services.openai_service import openai_service
+from app.services.gemini_service import gemini_service
 from app.services.file_service import FileService
 from app.services.encounter_service import encounter_service
 from app.schemas_v2 import VoiceTranscriptionRequest, VoiceTranscriptionResponse
@@ -796,14 +796,14 @@ async def download_media_file(
 @router.post("/voice/transcribe", response_model=VoiceTranscriptionResponse)
 async def transcribe_voice(
     voice_request: VoiceTranscriptionRequest,
-    current_user: User = Depends(get_current_active_user)
+    current_patient: User = Depends(get_current_patient)
 ):
     """
     Transcribe voice audio using OpenAI Whisper.
     Returns transcribed text for use in encounters.
     """
     try:
-        transcription = openai_service.transcribe_audio(voice_request.audio_base64)
+        transcription = gemini_service.transcribe_audio(voice_request.audio_base64)
         return VoiceTranscriptionResponse(
             transcribed_text=transcription
         )
@@ -990,10 +990,10 @@ async def extract_report_fields_from_voice(
 
     try:
         # Transcribe voice
-        transcription = openai_service.transcribe_audio(voice_request.audio_base64)
+        transcription = gemini_service.transcribe_audio(voice_request.audio_base64)
 
         # Extract fields using new OpenAI service method
-        extracted_fields = openai_service.extract_report_fields_from_voice(
+        extracted_fields = gemini_service.extract_report_fields_from_voice(
             transcription=transcription,
             existing_content=existing_content
         )
@@ -1077,10 +1077,10 @@ async def process_call_recording(
 
     try:
         # Transcribe call recording
-        transcription = openai_service.transcribe_audio(voice_request.audio_base64)
+        transcription = gemini_service.transcribe_audio(voice_request.audio_base64)
 
         # Extract medical information from conversation
-        extracted_data = openai_service.extract_medical_info_from_conversation(
+        extracted_data = gemini_service.extract_medical_info_from_conversation(
             conversation_transcription=transcription
         )
 
@@ -1261,9 +1261,79 @@ async def translate_summary_to_gujarati(
         )
 
     # Translate to Gujarati
-    translated_content = openai_service.translate_consultation_to_gujarati(summary.content)
+    translated_content = gemini_service.translate_consultation_to_gujarati(summary.content)
 
     return {
         "translated_content": translated_content,
         "original_content": summary.content
     }
+
+
+@router.get("/{encounter_id}/gujarati-voice-summary")
+async def get_gujarati_voice_summary(
+    encounter_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate Gujarati voice audio for encounter summary using Gemini TTS.
+    Returns audio file (MP3) that can be played or downloaded.
+    Medical terms are spoken in English within Gujarati speech.
+    """
+    # Get encounter
+    encounter = db.query(Encounter).filter(
+        Encounter.encounter_id == encounter_id
+    ).first()
+
+    if not encounter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Encounter not found"
+        )
+
+    # Check access - patient can only access their own, doctors can access assigned encounters
+    if current_user.role == UserRole.PATIENT:
+        if encounter.patient_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+    elif current_user.role == UserRole.DOCTOR:
+        if encounter.doctor_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+
+    # Get summary report
+    summary = db.query(SummaryReport).filter(
+        SummaryReport.encounter_id == encounter_id
+    ).first()
+
+    if not summary:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Summary report not found"
+        )
+
+    # First translate to Gujarati
+    translated_content = gemini_service.translate_consultation_to_gujarati(summary.content)
+
+    # Generate audio using Gemini TTS
+    try:
+        audio_bytes = gemini_service.generate_gujarati_voice_summary(translated_content)
+
+        # Return audio as response
+        from fastapi.responses import Response
+        return Response(
+            content=audio_bytes,
+            media_type="audio/mpeg",
+            headers={
+                "Content-Disposition": f"attachment; filename=summary_{encounter_id}_gujarati.mp3"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate voice summary: {str(e)}"
+        )

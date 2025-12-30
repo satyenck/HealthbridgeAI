@@ -87,6 +87,13 @@ class ApiService {
     });
     return response.data;
   }
+
+  async getBlob(url: string): Promise<ArrayBuffer> {
+    const response = await this.client.get<ArrayBuffer>(url, {
+      responseType: 'arraybuffer',
+    });
+    return response.data;
+  }
 }
 
 export default new ApiService();

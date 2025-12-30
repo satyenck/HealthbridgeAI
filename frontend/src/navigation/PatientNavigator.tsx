@@ -13,6 +13,7 @@ import {EncounterDetailScreen} from '../screens/patient/EncounterDetailScreen';
 import {VoiceRecordScreen} from '../screens/patient/VoiceRecordScreen';
 import {MediaUploadScreen} from '../screens/patient/MediaUploadScreen';
 import {VitalsEntryScreen} from '../screens/patient/VitalsEntryScreen';
+import {HealthAssistantScreen} from '../screens/patient/HealthAssistantScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -25,6 +26,11 @@ const HomeStack = () => {
         name="HomeMain"
         component={HomeScreen}
         options={{title: 'My Dashboard'}}
+      />
+      <Stack.Screen
+        name="HealthAssistant"
+        component={HealthAssistantScreen}
+        options={{headerShown: false}}
       />
       <Stack.Screen
         name="NewEncounter"

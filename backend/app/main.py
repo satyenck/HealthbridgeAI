@@ -15,7 +15,8 @@ from app.routers import (
     doctor_router,
     admin_router,
     lab_router,
-    pharmacy_router
+    pharmacy_router,
+    health_assistant_router
 )
 
 # Database tables created via SQL migration (init_v2_schema.sql)
@@ -52,6 +53,7 @@ app.include_router(doctor_router.router)
 app.include_router(admin_router.router)
 app.include_router(lab_router.router)
 app.include_router(pharmacy_router.router)
+app.include_router(health_assistant_router.router)
 
 
 @app.get("/")

@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models import User, Consultation, UserProfile, UserRole, ReportStatus, DoctorPatientRelationship
 from app.schemas import ConsultationCreate, ConsultationResponse, ConsultationUpdate, VoiceTranscriptionRequest, ConsultationFileResponse
 from app.auth import get_current_active_user, get_current_doctor
-from app.services.openai_service import openai_service
+from app.services.gemini_service import gemini_service
 from app.services.file_service import FileService
 
 router = APIRouter(prefix="/api/consultations", tags=["Consultations"])
@@ -31,7 +31,7 @@ async def create_consultation(
         health_history = profile.health_condition if profile and profile.health_condition else ""
 
         # Generate AI consultation report
-        report = openai_service.generate_consultation_report(
+        report = gemini_service.generate_consultation_report(
             consultation.patient_description,
             health_history
         )
@@ -342,7 +342,7 @@ async def transcribe_consultation_description(
     Transcribe voice description of health issue
     """
     try:
-        transcription = openai_service.transcribe_audio(voice_request.audio_base64)
+        transcription = gemini_service.transcribe_audio(voice_request.audio_base64)
         return {"transcription": transcription}
     except Exception as e:
         raise HTTPException(

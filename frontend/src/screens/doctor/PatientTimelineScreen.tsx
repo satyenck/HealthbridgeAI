@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {doctorService} from '../../services/doctorService';
-import {PatientTimeline} from '../../types';
+import {encounterService} from '../../services/encounterService';
+import {PatientTimeline, EncounterType, InputMethod} from '../../types';
 import {TimelineItem} from '../../components/TimelineItem';
 import {VitalsChart} from '../../components/VitalsChart';
 import {calculateAge} from '../../utils/dateHelpers';
@@ -19,6 +20,7 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
   const {patientId} = route.params;
   const [timeline, setTimeline] = useState<PatientTimeline | null>(null);
   const [loading, setLoading] = useState(true);
+  const [creatingEncounter, setCreatingEncounter] = useState(false);
 
   useEffect(() => {
     loadTimeline();
@@ -34,6 +36,32 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
       navigation.goBack();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStartVoiceConsultation = async () => {
+    if (!timeline) return;
+
+    try {
+      setCreatingEncounter(true);
+
+      // Create a new encounter for this patient
+      const encounter = await encounterService.createEncounter({
+        patient_id: patientId,
+        encounter_type: EncounterType.LIVE_VISIT,
+        input_method: InputMethod.VOICE,
+      });
+
+      // Navigate to voice call screen
+      navigation.navigate('VoiceCall', {
+        encounterId: encounter.encounter_id,
+        isDoctorConsultation: true,
+        patientName: `${timeline.patient.first_name} ${timeline.patient.last_name}`,
+      });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to start voice consultation');
+    } finally {
+      setCreatingEncounter(false);
     }
   };
 
@@ -67,6 +95,16 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
             {calculateAge(timeline.patient.date_of_birth)} years • {timeline.patient.gender}
           </Text>
         </View>
+        <TouchableOpacity
+          onPress={handleStartVoiceConsultation}
+          style={styles.micButton}
+          disabled={creatingEncounter}>
+          {creatingEncounter ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Icon name="mic" size={28} color="#fff" />
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>
@@ -139,8 +177,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#4CAF50',
-    paddingTop: 48,
-    paddingBottom: 16,
+    paddingTop: 32,
+    paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -150,6 +188,15 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
+  },
+  micButton: {
+    marginLeft: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 20,

@@ -12,14 +12,17 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {profileService} from '../../services/profileService';
 import {authService} from '../../services/authService';
+import {doctorService} from '../../services/doctorService';
 import {PatientProfile, Gender} from '../../types';
 import {formatDate, calculateAge} from '../../utils/dateHelpers';
+import {DoctorSearchDropdown} from '../../components/DoctorSearchDropdown';
 
 export const ProfileScreen = ({navigation}: any) => {
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [patientName, setPatientName] = useState<string>('My Profile');
 
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -27,6 +30,9 @@ export const ProfileScreen = ({navigation}: any) => {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState<Gender>(Gender.PREFER_NOT_TO_SAY);
   const [healthIssues, setHealthIssues] = useState('');
+  const [primaryDoctorId, setPrimaryDoctorId] = useState<string | null>(null);
+  const [primaryDoctorName, setPrimaryDoctorName] = useState<string | null>(null);
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     loadProfile();
@@ -38,10 +44,15 @@ export const ProfileScreen = ({navigation}: any) => {
       const data = await profileService.getProfile();
       setProfile(data);
       populateForm(data);
+      const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
+      if (fullName) {
+        setPatientName(fullName);
+      }
     } catch (error: any) {
       if (error.response?.status === 404) {
         // Profile doesn't exist, enable editing
         setEditing(true);
+        setPatientName('Create Profile');
       } else {
         Alert.alert('Error', error.message || 'Failed to load profile');
       }
@@ -56,6 +67,9 @@ export const ProfileScreen = ({navigation}: any) => {
     setDateOfBirth(data.date_of_birth);
     setGender(data.gender);
     setHealthIssues(data.general_health_issues || '');
+    setPrimaryDoctorId(data.primary_doctor_id || null);
+    setPrimaryDoctorName(data.primary_doctor_name || null);
+    setNotes(data.notes || '');
   };
 
   const handleSave = async () => {
@@ -72,6 +86,8 @@ export const ProfileScreen = ({navigation}: any) => {
         date_of_birth: dateOfBirth,
         gender,
         general_health_issues: healthIssues || undefined,
+        primary_doctor_id: primaryDoctorId || undefined,
+        notes: notes || undefined,
       };
 
       if (profile) {
@@ -82,12 +98,26 @@ export const ProfileScreen = ({navigation}: any) => {
         setProfile(created);
       }
 
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
+      if (fullName) {
+        setPatientName(fullName);
+      }
+
       setEditing(false);
       Alert.alert('Success', 'Profile saved successfully');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to save profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCreateDoctor = async (name: string, phone: string): Promise<string> => {
+    try {
+      const response = await doctorService.createBasicDoctor(name, phone);
+      return response.user_id;
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to add doctor');
     }
   };
 
@@ -123,7 +153,7 @@ export const ProfileScreen = ({navigation}: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Profile</Text>
+        <Text style={styles.title}>{patientName}</Text>
         <View style={styles.headerActions}>
           {!editing && profile && (
             <TouchableOpacity onPress={() => setEditing(true)} style={styles.headerButton}>
@@ -161,6 +191,20 @@ export const ProfileScreen = ({navigation}: any) => {
               <View style={styles.infoCard}>
                 <Text style={styles.label}>General Health Issues</Text>
                 <Text style={styles.value}>{profile.general_health_issues}</Text>
+              </View>
+            )}
+
+            {profile.primary_doctor_name && (
+              <View style={styles.infoCard}>
+                <Text style={styles.label}>Primary Doctor</Text>
+                <Text style={styles.value}>{profile.primary_doctor_name}</Text>
+              </View>
+            )}
+
+            {profile.notes && (
+              <View style={styles.infoCard}>
+                <Text style={styles.label}>Notes</Text>
+                <Text style={styles.value}>{profile.notes}</Text>
               </View>
             )}
 
@@ -237,6 +281,31 @@ export const ProfileScreen = ({navigation}: any) => {
               />
             </View>
 
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Primary Doctor</Text>
+              <DoctorSearchDropdown
+                selectedDoctorId={primaryDoctorId}
+                selectedDoctorName={primaryDoctorName}
+                onSelect={(doctorId, doctorName, isNotInList) => {
+                  setPrimaryDoctorId(doctorId);
+                  setPrimaryDoctorName(doctorName);
+                }}
+                onCreateDoctor={handleCreateDoctor}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Notes</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={notes}
+                onChangeText={setNotes}
+                placeholder="Add any personal notes or reminders"
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
             <View style={styles.buttonRow}>
               {profile && (
                 <TouchableOpacity
@@ -279,8 +348,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    padding: 16,
-    paddingTop: 48,
+    padding: 11,
+    paddingTop: 34,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

@@ -2,7 +2,7 @@
 Encounter Router - Handles all medical encounters and related data
 Replaces consultation_router.py in v2 architecture
 """
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Body
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -562,6 +562,11 @@ async def update_summary_report(
         summary.priority = update_data.priority
     if update_data.content is not None:
         summary.content = update_data.content.model_dump()
+        # Clear cached translations when content is updated
+        if hasattr(summary, 'gujarati_content'):
+            summary.gujarati_content = None
+        if hasattr(summary, 'hindi_content'):
+            summary.hindi_content = None
 
     summary.updated_at = datetime.utcnow()
 
@@ -1215,39 +1220,19 @@ async def create_prescription_for_encounter(
     return new_prescription
 
 
-@router.get("/{encounter_id}/translate-summary")
-async def translate_summary_to_gujarati(
+@router.post("/{encounter_id}/translate-summary")
+async def translate_summary_to_language(
     encounter_id: UUID,
-    current_user: User = Depends(get_current_active_user),
+    language_request: dict = Body(...),
+    current_doctor: User = Depends(get_current_doctor),
     db: Session = Depends(get_db)
 ):
     """
-    Translate encounter summary report to Gujarati while keeping medical terms in English.
+    Translate encounter summary report to specified language while keeping medical terms in English.
+    Supported languages: en (English), gu (Gujarati), hi (Hindi)
+    Doctor only endpoint.
     """
-    # Get encounter
-    encounter = db.query(Encounter).filter(
-        Encounter.encounter_id == encounter_id
-    ).first()
-
-    if not encounter:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Encounter not found"
-        )
-
-    # Check access - patient can only access their own, doctors can access assigned encounters
-    if current_user.role == UserRole.PATIENT:
-        if encounter.patient_id != current_user.user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-    elif current_user.role == UserRole.DOCTOR:
-        if encounter.doctor_id != current_user.user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
+    language = language_request.get("language", "en")
 
     # Get summary report
     summary = db.query(SummaryReport).filter(
@@ -1260,13 +1245,53 @@ async def translate_summary_to_gujarati(
             detail="Summary report not found"
         )
 
-    # Translate to Gujarati
-    translated_content = gemini_service.translate_consultation_to_gujarati(summary.content)
+    # Get the original content (always in English from the database)
+    original_content = summary.content
 
-    return {
-        "translated_content": translated_content,
-        "original_content": summary.content
-    }
+    # Check for cached translations first, otherwise translate and cache
+    if language == "gu":
+        # Check if Gujarati translation is cached
+        if hasattr(summary, 'gujarati_content') and summary.gujarati_content:
+            translated_content = summary.gujarati_content
+        else:
+            # Translate to Gujarati and cache it
+            translated_content = gemini_service.translate_consultation_to_gujarati(original_content)
+            try:
+                summary.gujarati_content = translated_content
+                db.commit()
+            except Exception as e:
+                # If caching fails (e.g., column doesn't exist yet), just continue
+                print(f"Warning: Could not cache Gujarati translation: {e}")
+                db.rollback()
+    elif language == "hi":
+        # Check if Hindi translation is cached
+        if hasattr(summary, 'hindi_content') and summary.hindi_content:
+            translated_content = summary.hindi_content
+        else:
+            # Translate to Hindi and cache it
+            translated_content = gemini_service.translate_consultation_to_hindi(original_content)
+            try:
+                summary.hindi_content = translated_content
+                db.commit()
+            except Exception as e:
+                # If caching fails (e.g., column doesn't exist yet), just continue
+                print(f"Warning: Could not cache Hindi translation: {e}")
+                db.rollback()
+    else:
+        # Return original English content
+        translated_content = original_content
+
+    # Create a copy of the summary with translated content
+    from app.schemas_v2 import SummaryReportResponse
+    return SummaryReportResponse(
+        report_id=summary.report_id,
+        encounter_id=summary.encounter_id,
+        content=translated_content,
+        status=summary.status,
+        priority=summary.priority,
+        created_at=summary.created_at,
+        updated_at=summary.updated_at
+    )
 
 
 @router.get("/{encounter_id}/gujarati-voice-summary")

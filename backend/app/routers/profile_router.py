@@ -38,7 +38,9 @@ async def create_profile(
         last_name=profile.last_name,
         date_of_birth=profile.date_of_birth,
         gender=profile.gender,
-        general_health_issues=profile.general_health_issues
+        general_health_issues=profile.general_health_issues,
+        primary_doctor_id=profile.primary_doctor_id,
+        notes=profile.notes
     )
 
     db.add(new_profile)
@@ -56,6 +58,8 @@ async def get_profile(
     """
     Get current patient's profile.
     """
+    from app.models_v2 import DoctorProfile
+
     profile = db.query(PatientProfile).filter(
         PatientProfile.user_id == current_patient.user_id
     ).first()
@@ -66,7 +70,31 @@ async def get_profile(
             detail="Profile not found"
         )
 
-    return profile
+    # Get primary doctor name if exists
+    primary_doctor_name = None
+    if profile.primary_doctor_id:
+        doctor = db.query(DoctorProfile).filter(
+            DoctorProfile.user_id == profile.primary_doctor_id
+        ).first()
+        if doctor:
+            primary_doctor_name = f"Dr. {doctor.first_name} {doctor.last_name}"
+
+    # Create response with computed field
+    profile_dict = {
+        "user_id": profile.user_id,
+        "first_name": profile.first_name,
+        "last_name": profile.last_name,
+        "date_of_birth": profile.date_of_birth,
+        "gender": profile.gender,
+        "general_health_issues": profile.general_health_issues,
+        "primary_doctor_id": profile.primary_doctor_id,
+        "primary_doctor_name": primary_doctor_name,
+        "notes": profile.notes,
+        "created_at": profile.created_at,
+        "updated_at": profile.updated_at
+    }
+
+    return profile_dict
 
 
 @router.patch("/", response_model=PatientProfileResponse)
@@ -99,11 +127,40 @@ async def update_profile(
         profile.gender = profile_update.gender
     if profile_update.general_health_issues is not None:
         profile.general_health_issues = profile_update.general_health_issues
+    if profile_update.primary_doctor_id is not None:
+        profile.primary_doctor_id = profile_update.primary_doctor_id
+    if profile_update.notes is not None:
+        profile.notes = profile_update.notes
 
     db.commit()
     db.refresh(profile)
 
-    return profile
+    # Get primary doctor name if exists
+    from app.models_v2 import DoctorProfile
+    primary_doctor_name = None
+    if profile.primary_doctor_id:
+        doctor = db.query(DoctorProfile).filter(
+            DoctorProfile.user_id == profile.primary_doctor_id
+        ).first()
+        if doctor:
+            primary_doctor_name = f"Dr. {doctor.first_name} {doctor.last_name}"
+
+    # Create response with computed field
+    profile_dict = {
+        "user_id": profile.user_id,
+        "first_name": profile.first_name,
+        "last_name": profile.last_name,
+        "date_of_birth": profile.date_of_birth,
+        "gender": profile.gender,
+        "general_health_issues": profile.general_health_issues,
+        "primary_doctor_id": profile.primary_doctor_id,
+        "primary_doctor_name": primary_doctor_name,
+        "notes": profile.notes,
+        "created_at": profile.created_at,
+        "updated_at": profile.updated_at
+    }
+
+    return profile_dict
 
 
 @router.post("/transcribe-voice")

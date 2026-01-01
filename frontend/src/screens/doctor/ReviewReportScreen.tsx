@@ -48,6 +48,7 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<MediaFile | null>(null);
   const [showFileViewer, setShowFileViewer] = useState(false);
+  const [translating, setTranslating] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -85,6 +86,38 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
     setPrescription(data.content.prescription || '');
     setNextSteps(data.content.next_steps);
     setPriority(data.priority || Priority.MEDIUM);
+  };
+
+  const handleTranslate = async (language: string, languageName: string) => {
+    // Prevent multiple simultaneous translations
+    if (translating) {
+      return;
+    }
+
+    try {
+      setTranslating(true);
+
+      // Call translate API with timeout handling
+      const response = await encounterService.translateSummary(encounterId, language);
+
+      // Update form fields with translated content
+      setSymptoms(response.content.symptoms);
+      setDiagnosis(response.content.diagnosis);
+      setTreatment(response.content.treatment);
+      setTests(response.content.tests || '');
+      setPrescription(response.content.prescription || '');
+      setNextSteps(response.content.next_steps);
+
+      Alert.alert('Success', `Report translated to ${languageName}`);
+    } catch (error: any) {
+      console.error('Translation error:', error);
+      const errorMessage = error.code === 'ECONNABORTED'
+        ? 'Translation is taking longer than expected. Please try again.'
+        : error.message || 'Failed to translate report';
+      Alert.alert('Translation Error', errorMessage);
+    } finally {
+      setTranslating(false);
+    }
   };
 
   const handleSave = async () => {
@@ -252,12 +285,42 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
         </TouchableOpacity>
         <Text style={styles.title}>Review Report</Text>
         {!editing && (
-          <View style={{flexDirection: 'row', gap: 12}}>
-            <TouchableOpacity onPress={() => setShowVoiceModal(true)}>
-              <Icon name="mic" size={24} color="#fff" />
+          <View style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
+            {/* Language Translation Buttons */}
+            {translating ? (
+              <View style={styles.translatingContainer}>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={styles.translatingText}>Translating</Text>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.languageButton}
+                  onPress={() => handleTranslate('gu', 'Gujarati')}
+                  disabled={translating}>
+                  <Text style={styles.languageButtonText}>ક</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.languageButton}
+                  onPress={() => handleTranslate('hi', 'Hindi')}
+                  disabled={translating}>
+                  <Text style={styles.languageButtonText}>क</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.languageButton}
+                  onPress={() => handleTranslate('en', 'English')}
+                  disabled={translating}>
+                  <Text style={styles.languageButtonText}>K</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* Action Buttons */}
+            <TouchableOpacity onPress={() => setShowVoiceModal(true)} disabled={translating}>
+              <Icon name="mic" size={32} color="#fff" />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setEditing(true)}>
-              <Icon name="edit" size={24} color="#fff" />
+            <TouchableOpacity onPress={() => setEditing(true)} disabled={translating}>
+              <Icon name="edit" size={32} color="#fff" />
             </TouchableOpacity>
           </View>
         )}
@@ -512,8 +575,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#4CAF50',
-    paddingTop: 48,
-    paddingBottom: 16,
+    paddingTop: 32,
+    paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -525,6 +588,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     flex: 1,
     marginLeft: 16,
+  },
+  languageButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  languageButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  translatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  translatingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
   content: {
     flex: 1,

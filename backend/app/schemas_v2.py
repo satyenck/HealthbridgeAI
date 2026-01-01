@@ -96,6 +96,8 @@ class PatientProfileBase(BaseModel):
     date_of_birth: date
     gender: Gender
     general_health_issues: Optional[str] = None
+    primary_doctor_id: Optional[UUID4] = None
+    notes: Optional[str] = None
 
 
 class PatientProfileCreate(PatientProfileBase):
@@ -110,11 +112,14 @@ class PatientProfileUpdate(BaseModel):
     date_of_birth: Optional[date] = None
     gender: Optional[Gender] = None
     general_health_issues: Optional[str] = None
+    primary_doctor_id: Optional[UUID4] = None
+    notes: Optional[str] = None
 
 
 class PatientProfileResponse(PatientProfileBase):
     """Schema for patient profile response"""
     user_id: UUID4
+    primary_doctor_name: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

@@ -49,6 +49,101 @@ async def get_doctor_profile(
     return doctor_profile
 
 
+@router.get("/search-public")
+async def search_doctors_public(
+    query: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint to search doctors by first name or last name.
+    Used for patient profile doctor selection dropdown.
+    No authentication required.
+    """
+    if len(query) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Query must be at least 2 characters"
+        )
+
+    doctors = db.query(DoctorProfile).filter(
+        (DoctorProfile.first_name.ilike(f"%{query}%")) |
+        (DoctorProfile.last_name.ilike(f"%{query}%"))
+    ).limit(20).all()
+
+    return [
+        {
+            "user_id": str(d.user_id),
+            "first_name": d.first_name,
+            "last_name": d.last_name,
+            "specialty": d.specialty,
+            "hospital_name": d.hospital_name
+        }
+        for d in doctors
+    ]
+
+
+@router.post("/create-basic")
+async def create_basic_doctor(
+    name: str,
+    phone: str,
+    current_patient: User = Depends(lambda: None),  # Allow patient auth
+    db: Session = Depends(get_db)
+):
+    """
+    Create a basic doctor profile when patient's doctor is not in list.
+    Creates minimal doctor record for reference purposes.
+    """
+    from app.models_v2 import UserRole
+    import uuid
+
+    # Check if doctor with this phone already exists
+    existing_user = db.query(User).filter(User.phone_number == phone).first()
+    if existing_user:
+        # Return existing doctor
+        existing_doctor = db.query(DoctorProfile).filter(
+            DoctorProfile.user_id == existing_user.user_id
+        ).first()
+        if existing_doctor:
+            return {
+                "user_id": str(existing_doctor.user_id),
+                "first_name": existing_doctor.first_name,
+                "last_name": existing_doctor.last_name
+            }
+
+    # Split name into first and last
+    name_parts = name.strip().split(maxsplit=1)
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+    # Create User with role=DOCTOR
+    new_user = User(
+        user_id=uuid.uuid4(),
+        phone_number=phone,
+        role=UserRole.DOCTOR,
+        is_active=False  # Not active until they verify/claim account
+    )
+    db.add(new_user)
+    db.flush()
+
+    # Create DoctorProfile
+    doctor_profile = DoctorProfile(
+        user_id=new_user.user_id,
+        first_name=first_name,
+        last_name=last_name,
+        email="",  # Empty until doctor claims account
+        phone=phone,
+        address="Pending verification"
+    )
+    db.add(doctor_profile)
+    db.commit()
+
+    return {
+        "user_id": str(new_user.user_id),
+        "first_name": first_name,
+        "last_name": last_name
+    }
+
+
 # ============================================================================
 # PATIENT SEARCH & MANAGEMENT
 # ============================================================================

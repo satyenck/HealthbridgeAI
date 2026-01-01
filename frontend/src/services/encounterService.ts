@@ -205,6 +205,19 @@ export const encounterService = {
     );
   },
 
+  /**
+   * Translate summary report to another language
+   */
+  async translateSummary(
+    encounterId: string,
+    language: string,
+  ): Promise<SummaryReport> {
+    return await apiService.post<SummaryReport>(
+      API_ENDPOINTS.TRANSLATE_SUMMARY(encounterId),
+      {language},
+    );
+  },
+
   // ============================================================================
   // MEDIA FILES
   // ============================================================================

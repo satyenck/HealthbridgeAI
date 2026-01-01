@@ -1,4 +1,5 @@
 import React from 'react';
+import {View, Text} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -14,6 +15,7 @@ import {ReviewReportScreen} from '../screens/doctor/ReviewReportScreen';
 import {DoctorProfileScreen} from '../screens/doctor/DoctorProfileScreen';
 import {VoiceCallScreen} from '../screens/VoiceCallScreen';
 import {CallReviewScreen} from '../screens/doctor/CallReviewScreen';
+import {DoctorConsultationReviewScreen} from '../screens/doctor/DoctorConsultationReviewScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -25,7 +27,26 @@ const DashboardStack = () => {
       <Stack.Screen
         name="DashboardMain"
         component={DashboardScreen}
-        options={{title: 'Dashboard'}}
+        options={{
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#2196F3',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                HealthbridgeAI
+              </Text>
+            </View>
+          ),
+        }}
       />
       <Stack.Screen
         name="VoiceCall"
@@ -48,7 +69,26 @@ const ReportsStack = () => {
       <Stack.Screen
         name="PendingReportsMain"
         component={PendingReportsScreen}
-        options={{title: 'Pending Reports'}}
+        options={{
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#2196F3',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                HealthbridgeAI
+              </Text>
+            </View>
+          ),
+        }}
       />
       <Stack.Screen
         name="ReviewedReports"
@@ -81,7 +121,26 @@ const SearchStack = () => {
       <Stack.Screen
         name="SearchPatientsMain"
         component={SearchPatientsScreen}
-        options={{title: 'Search Patients'}}
+        options={{
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#2196F3',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                HealthbridgeAI
+              </Text>
+            </View>
+          ),
+        }}
       />
       <Stack.Screen
         name="PatientTimeline"
@@ -101,6 +160,11 @@ const SearchStack = () => {
       <Stack.Screen
         name="CallReview"
         component={CallReviewScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="DoctorConsultationReview"
+        component={DoctorConsultationReviewScreen}
         options={{headerShown: false}}
       />
     </Stack.Navigator>
@@ -114,7 +178,26 @@ const PatientsStack = () => {
       <Stack.Screen
         name="MyPatientsMain"
         component={MyPatientsScreen}
-        options={{title: 'My Patients'}}
+        options={{
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#2196F3',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                HealthbridgeAI
+              </Text>
+            </View>
+          ),
+        }}
       />
       <Stack.Screen
         name="PatientTimeline"
@@ -136,6 +219,11 @@ const PatientsStack = () => {
         component={CallReviewScreen}
         options={{headerShown: false}}
       />
+      <Stack.Screen
+        name="DoctorConsultationReview"
+        component={DoctorConsultationReviewScreen}
+        options={{headerShown: false}}
+      />
     </Stack.Navigator>
   );
 };
@@ -147,7 +235,26 @@ const ProfileStack = () => {
       <Stack.Screen
         name="DoctorProfileMain"
         component={DoctorProfileScreen}
-        options={{title: 'Profile'}}
+        options={{
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#2196F3',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                HealthbridgeAI
+              </Text>
+            </View>
+          ),
+        }}
       />
     </Stack.Navigator>
   );
@@ -207,7 +314,7 @@ export const DoctorNavigator = () => {
         options={{
           tabBarLabel: 'Profile',
           tabBarIcon: ({color, size}) => (
-            <Icon name="person" size={size} color={color} />
+            <Icon name="account-circle" size={size} color={color} />
           ),
         }}
       />

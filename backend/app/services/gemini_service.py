@@ -5,6 +5,39 @@ from io import BytesIO
 import json
 import tempfile
 import os
+import re
+
+
+def clean_markdown_formatting(text: str) -> str:
+    """
+    Remove markdown formatting markers from text.
+    Removes: **, *, __, _, ~~, `, #, etc.
+    """
+    if not text:
+        return text
+
+    # Remove bold markers (**text** or __text__)
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'__(.+?)__', r'\1', text)
+
+    # Remove italic markers (*text* or _text_)
+    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    text = re.sub(r'_(.+?)_', r'\1', text)
+
+    # Remove strikethrough (~~text~~)
+    text = re.sub(r'~~(.+?)~~', r'\1', text)
+
+    # Remove inline code (`text`)
+    text = re.sub(r'`(.+?)`', r'\1', text)
+
+    # Remove headers (# text)
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+
+    # Remove remaining asterisks and underscores at word boundaries
+    text = re.sub(r'\*+', '', text)
+    text = re.sub(r'_+', '', text)
+
+    return text
 
 
 class GeminiService:
@@ -108,6 +141,12 @@ Ensure all fields are filled with meaningful content or explicitly state 'None r
             )
 
             result = json.loads(response.text)
+
+            # Clean markdown formatting from all fields
+            for key in result:
+                if isinstance(result[key], str):
+                    result[key] = clean_markdown_formatting(result[key])
+
             return result
 
         except Exception as e:
@@ -239,6 +278,12 @@ Only include fields that the doctor explicitly mentioned updating."""
             )
 
             result = json.loads(response.text)
+
+            # Clean markdown formatting from all fields
+            for key in result:
+                if isinstance(result[key], str):
+                    result[key] = clean_markdown_formatting(result[key])
+
             return result
 
         except Exception as e:
@@ -296,6 +341,12 @@ Only include fields that were actually discussed in the conversation. Set to nul
             )
 
             result = json.loads(response.text)
+
+            # Clean markdown formatting from all fields
+            for key in result:
+                if isinstance(result[key], str):
+                    result[key] = clean_markdown_formatting(result[key])
+
             return result
 
         except Exception as e:
@@ -385,6 +436,18 @@ Provide 2-4 health alerts (or empty array if no concerns), 3-5 DOs, 3-5 DON'Ts, 
             )
 
             result = json.loads(response.text)
+
+            # Clean markdown formatting from all string fields
+            def clean_dict(obj):
+                if isinstance(obj, dict):
+                    return {k: clean_dict(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [clean_dict(item) for item in obj]
+                elif isinstance(obj, str):
+                    return clean_markdown_formatting(obj)
+                return obj
+
+            result = clean_dict(result)
             return result
 
         except Exception as e:
@@ -433,10 +496,70 @@ IMPORTANT: Return JSON with these exact lowercase field names:
             )
 
             result = json.loads(response.text)
+
+            # Clean markdown formatting from all fields
+            for key in result:
+                if isinstance(result[key], str):
+                    result[key] = clean_markdown_formatting(result[key])
+
             return result
 
         except Exception as e:
             raise Exception(f"Failed to translate consultation: {str(e)}")
+
+    def translate_consultation_to_hindi(self, consultation_content: dict) -> dict:
+        """
+        Translate consultation/summary report content to Hindi while keeping medical terms in English.
+        """
+        try:
+            system_prompt = """You are a medical translator. Translate medical consultation content to Hindi while keeping medical terms in English.
+
+IMPORTANT RULES:
+- Keep medical terms, medication names, test names, and disease names in ENGLISH
+- Translate all explanations and general text to HINDI
+- Use natural Hindi that patients can easily understand
+- Mix English medical terms naturally within Hindi sentences"""
+
+            user_prompt = f"""Translate this medical consultation to Hindi (keeping medical terms in English):
+
+Symptoms: {consultation_content.get('symptoms', 'N/A')}
+Diagnosis: {consultation_content.get('diagnosis', 'N/A')}
+Treatment: {consultation_content.get('treatment', 'N/A')}
+Tests: {consultation_content.get('tests', 'N/A')}
+Prescription: {consultation_content.get('prescription', 'N/A')}
+Next Steps: {consultation_content.get('next_steps', 'N/A')}
+
+IMPORTANT: Return JSON with these exact lowercase field names:
+{{
+    "symptoms": "translated symptoms in Hindi",
+    "diagnosis": "translated diagnosis in Hindi",
+    "treatment": "translated treatment in Hindi",
+    "tests": "translated tests in Hindi",
+    "prescription": "translated prescription in Hindi",
+    "next_steps": "translated next steps in Hindi"
+}}"""
+
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
+            response = self.text_model.generate_content(
+                full_prompt,
+                generation_config=genai.GenerationConfig(
+                    temperature=0.3,
+                    response_mime_type="application/json"
+                )
+            )
+
+            result = json.loads(response.text)
+
+            # Clean markdown formatting from all fields
+            for key in result:
+                if isinstance(result[key], str):
+                    result[key] = clean_markdown_formatting(result[key])
+
+            return result
+
+        except Exception as e:
+            raise Exception(f"Failed to translate consultation to Hindi: {str(e)}")
 
     def generate_gujarati_voice_summary(self, consultation_content: dict) -> bytes:
         """

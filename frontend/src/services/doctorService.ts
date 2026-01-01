@@ -6,6 +6,7 @@ import {
   SummaryReport,
   SystemStats,
   DoctorProfile,
+  Doctor,
 } from '../types';
 
 export interface PatientSearchResult {
@@ -88,5 +89,24 @@ export const doctorService = {
    */
   async getStats(): Promise<DoctorStats> {
     return await apiService.get<DoctorStats>(API_ENDPOINTS.DOCTOR_STATS);
+  },
+
+  /**
+   * Search doctors by name (public endpoint)
+   */
+  async searchDoctors(query: string): Promise<Doctor[]> {
+    return await apiService.get<Doctor[]>(
+      `${API_ENDPOINTS.SEARCH_DOCTORS}?query=${encodeURIComponent(query)}`,
+    );
+  },
+
+  /**
+   * Create a basic doctor profile when patient's doctor is not in list
+   */
+  async createBasicDoctor(name: string, phone: string): Promise<{user_id: string; first_name: string; last_name: string}> {
+    return await apiService.post<{user_id: string; first_name: string; last_name: string}>(
+      API_ENDPOINTS.CREATE_BASIC_DOCTOR,
+      {name, phone},
+    );
   },
 };

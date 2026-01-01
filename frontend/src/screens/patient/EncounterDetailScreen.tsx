@@ -37,7 +37,7 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
   const [assigning, setAssigning] = useState(false);
   const [showLabModal, setShowLabModal] = useState(false);
   const [showPharmacyModal, setShowPharmacyModal] = useState(false);
-  const [language, setLanguage] = useState<'English' | 'Gujarati'>('English');
+  const [language, setLanguage] = useState<'en' | 'gu' | 'hi'>('en');
   const [translatedContent, setTranslatedContent] = useState<any>(null);
   const [translating, setTranslating] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -52,7 +52,8 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
     // Initialize TTS with proper error handling
     const initTts = async () => {
       try {
-        await Tts.setDefaultLanguage(language === 'Gujarati' ? 'gu-IN' : 'en-US');
+        const ttsLang = language === 'gu' ? 'gu-IN' : language === 'hi' ? 'hi-IN' : 'en-US';
+        await Tts.setDefaultLanguage(ttsLang);
         await Tts.setDefaultRate(0.5, true);
         await Tts.setDefaultPitch(1.0);
       } catch (error) {
@@ -157,41 +158,45 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
     }
   };
 
-  const handleTranslate = async () => {
-    const targetLanguage = language === 'English' ? 'Gujarati' : 'English';
+  const handleTranslate = async (targetLang: 'en' | 'gu' | 'hi') => {
+    if (targetLang === 'en') {
+      // Switch back to original English content
+      setLanguage('en');
+      setTranslatedContent(null);
+      return;
+    }
 
-    if (targetLanguage === 'Gujarati') {
-      // Always fetch fresh translation when switching to Gujarati
-      try {
-        setTranslating(true);
-        const response = await apiService.get(API_ENDPOINTS.TRANSLATE_SUMMARY(encounterId));
-        console.log('Translation API response:', response);
-        console.log('Translated content:', response.translated_content);
+    // Prevent multiple simultaneous translations
+    if (translating) {
+      return;
+    }
 
-        // Ensure all fields exist (fill in missing ones from original)
-        const originalContent = encounter?.summary_report?.content || {};
-        const translated = {
-          symptoms: response.translated_content?.symptoms || originalContent.symptoms || '',
-          diagnosis: response.translated_content?.diagnosis || originalContent.diagnosis || '',
-          treatment: response.translated_content?.treatment || originalContent.treatment || '',
-          tests: response.translated_content?.tests || originalContent.tests || '',
-          prescription: response.translated_content?.prescription || originalContent.prescription || '',
-          next_steps: response.translated_content?.next_steps || originalContent.next_steps || '',
-        };
+    // Translate to target language
+    try {
+      setTranslating(true);
+      const response = await encounterService.translateSummary(encounterId, targetLang);
 
-        console.log('Final translated content:', translated);
+      // Ensure all fields exist (fill in missing ones from original)
+      const originalContent = encounter?.summary_report?.content || {};
+      const translated = {
+        symptoms: response.content?.symptoms || originalContent.symptoms || '',
+        diagnosis: response.content?.diagnosis || originalContent.diagnosis || '',
+        treatment: response.content?.treatment || originalContent.treatment || '',
+        tests: response.content?.tests || originalContent.tests || '',
+        prescription: response.content?.prescription || originalContent.prescription || '',
+        next_steps: response.content?.next_steps || originalContent.next_steps || '',
+      };
 
-        setTranslatedContent(translated);
-        setLanguage('Gujarati');
-      } catch (error: any) {
-        console.error('Translation error:', error);
-        Alert.alert('Error', error.message || 'Failed to translate');
-      } finally {
-        setTranslating(false);
-      }
-    } else {
-      // Switch back to English
-      setLanguage(targetLanguage);
+      setTranslatedContent(translated);
+      setLanguage(targetLang);
+    } catch (error: any) {
+      console.error('Translation error:', error);
+      const errorMessage = error.code === 'ECONNABORTED'
+        ? 'Translation is taking longer than expected. Please try again.'
+        : error.message || 'Failed to translate';
+      Alert.alert('Translation Error', errorMessage);
+    } finally {
+      setTranslating(false);
     }
   };
 
@@ -218,8 +223,11 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
       const gujaratiVoice = voices.find((v: any) =>
         v.language === 'gu-IN' || v.language.startsWith('gu')
       );
+      const hindiVoice = voices.find((v: any) =>
+        v.language === 'hi-IN' || v.language.startsWith('hi')
+      );
 
-      if (language === 'Gujarati') {
+      if (language === 'gu') {
         if (gujaratiVoice) {
           await Tts.setDefaultLanguage('gu-IN');
         } else {
@@ -229,50 +237,72 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
           );
           await Tts.setDefaultLanguage('en-US');
         }
+      } else if (language === 'hi') {
+        if (hindiVoice) {
+          await Tts.setDefaultLanguage('hi-IN');
+        } else {
+          Alert.alert(
+            'Hindi Voice Not Available',
+            'Your device does not have Hindi voice installed. Speaking in English instead.',
+          );
+          await Tts.setDefaultLanguage('en-US');
+        }
       } else {
         await Tts.setDefaultLanguage('en-US');
       }
 
       // Build speech text from summary
-      const content = language === 'Gujarati' && translatedContent
+      const content = (language === 'gu' || language === 'hi') && translatedContent
         ? translatedContent
         : encounter.summary_report.content;
 
       let speechText = '';
 
       if (content.symptoms) {
-        speechText += language === 'Gujarati'
+        speechText += language === 'gu'
           ? `લક્ષણો. ${content.symptoms}. `
+          : language === 'hi'
+          ? `लक्षण. ${content.symptoms}. `
           : `Symptoms. ${content.symptoms}. `;
       }
 
       if (content.diagnosis) {
-        speechText += language === 'Gujarati'
+        speechText += language === 'gu'
           ? `નિદાન. ${content.diagnosis}. `
+          : language === 'hi'
+          ? `निदान. ${content.diagnosis}. `
           : `Diagnosis. ${content.diagnosis}. `;
       }
 
       if (content.treatment) {
-        speechText += language === 'Gujarati'
+        speechText += language === 'gu'
           ? `સારવાર. ${content.treatment}. `
+          : language === 'hi'
+          ? `उपचार. ${content.treatment}. `
           : `Treatment. ${content.treatment}. `;
       }
 
       if (content.tests) {
-        speechText += language === 'Gujarati'
+        speechText += language === 'gu'
           ? `પરીક્ષણો. ${content.tests}. `
+          : language === 'hi'
+          ? `परीक्षण. ${content.tests}. `
           : `Tests. ${content.tests}. `;
       }
 
       if (content.prescription) {
-        speechText += language === 'Gujarati'
+        speechText += language === 'gu'
           ? `દવા. ${content.prescription}. `
+          : language === 'hi'
+          ? `दवाई. ${content.prescription}. `
           : `Prescription. ${content.prescription}. `;
       }
 
       if (content.next_steps) {
-        speechText += language === 'Gujarati'
+        speechText += language === 'gu'
           ? `આગળના પગલાં. ${content.next_steps}. `
+          : language === 'hi'
+          ? `अगले कदम. ${content.next_steps}. `
           : `Next Steps. ${content.next_steps}. `;
       }
 
@@ -310,12 +340,7 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}>
-          <Icon name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Encounter Details</Text>
+        <Text style={styles.title}>Details</Text>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -402,21 +427,34 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
                     color={isSpeaking ? '#F44336' : '#2196F3'}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.translateButton}
-                  onPress={handleTranslate}
-                  disabled={translating}>
-                  {translating ? (
+                {/* Language Translation Buttons */}
+                {translating ? (
+                  <View style={styles.translatingContainer}>
                     <ActivityIndicator size="small" color="#2196F3" />
-                  ) : (
-                    <>
-                      <Icon name="translate" size={18} color="#2196F3" />
-                      <Text style={styles.translateButtonText}>
-                        {language === 'English' ? 'ગુજરાતી' : 'English'}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                    <Text style={styles.translatingText}>Translating</Text>
+                  </View>
+                ) : (
+                  <View style={styles.languageButtonsContainer}>
+                    <TouchableOpacity
+                      style={[styles.languageButton, language === 'gu' && styles.languageButtonActive]}
+                      onPress={() => handleTranslate('gu')}
+                      disabled={translating}>
+                      <Text style={[styles.languageButtonText, language === 'gu' && styles.languageButtonTextActive]}>ક</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.languageButton, language === 'hi' && styles.languageButtonActive]}
+                      onPress={() => handleTranslate('hi')}
+                      disabled={translating}>
+                      <Text style={[styles.languageButtonText, language === 'hi' && styles.languageButtonTextActive]}>क</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.languageButton, language === 'en' && styles.languageButtonActive]}
+                      onPress={() => handleTranslate('en')}
+                      disabled={translating}>
+                      <Text style={[styles.languageButtonText, language === 'en' && styles.languageButtonTextActive]}>K</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
                 {encounter.summary_report!.status !== 'REVIEWED' && (
                   <TouchableOpacity onPress={handleEditSymptoms} style={styles.editButton}>
                     <Icon name="edit" size={20} color="#2196F3" />
@@ -490,17 +528,17 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
           <Text style={styles.sectionTitle}>Add More Information</Text>
           <View style={styles.actionsGrid}>
             <TouchableOpacity style={styles.actionButton} onPress={handleAddVitals}>
-              <Icon name="favorite" size={24} color="#2196F3" />
+              <Icon name="favorite" size={30} color="#2196F3" />
               <Text style={styles.actionButtonText}>Add Vitals</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handleAddVoice}>
-              <Icon name="mic" size={24} color="#2196F3" />
+              <Icon name="mic" size={36} color="#2196F3" />
               <Text style={styles.actionButtonText}>Voice Note</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handleAddMedia}>
-              <Icon name="attach-file" size={24} color="#2196F3" />
+              <Icon name="attach-file" size={30} color="#2196F3" />
               <Text style={styles.actionButtonText}>Upload Files</Text>
             </TouchableOpacity>
           </View>
@@ -513,14 +551,14 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
             <TouchableOpacity
               style={[styles.actionButton, styles.labButton]}
               onPress={() => setShowLabModal(true)}>
-              <Icon name="science" size={24} color="#2196F3" />
+              <Icon name="science" size={31} color="#2196F3" />
               <Text style={styles.actionButtonText}>Send to Lab</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.actionButton, styles.pharmacyButton]}
               onPress={() => setShowPharmacyModal(true)}>
-              <Icon name="local-pharmacy" size={24} color="#9C27B0" />
+              <Icon name="local-pharmacy" size={31} color="#9C27B0" />
               <Text style={styles.actionButtonText}>Send to Pharmacy</Text>
             </TouchableOpacity>
           </View>
@@ -651,10 +689,10 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#2196F3',
-    paddingTop: 48,
-    paddingBottom: 16,
+    paddingTop: 22,
+    paddingBottom: 23,
     paddingHorizontal: 16,
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   backButton: {
@@ -791,16 +829,38 @@ const styles = StyleSheet.create({
   iconButtonActive: {
     backgroundColor: '#FFEBEE',
   },
-  translateButton: {
+  languageButtonsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
     gap: 6,
   },
-  translateButtonText: {
+  languageButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#2196F3',
+  },
+  languageButtonActive: {
+    backgroundColor: '#2196F3',
+  },
+  languageButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2196F3',
+  },
+  languageButtonTextActive: {
+    color: '#fff',
+  },
+  translatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  translatingText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#2196F3',

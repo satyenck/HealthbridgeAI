@@ -76,8 +76,19 @@ export interface PatientProfile {
   date_of_birth: string;
   gender: Gender;
   general_health_issues?: string;
+  primary_doctor_id?: string;
+  primary_doctor_name?: string;
+  notes?: string;
   created_at: string;
   updated_at?: string;
+}
+
+export interface Doctor {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  specialty?: string;
+  hospital_name?: string;
 }
 
 export interface DoctorProfile {

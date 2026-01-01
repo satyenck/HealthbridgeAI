@@ -65,7 +65,9 @@ export const DoctorProfileScreen = ({navigation}: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Profile</Text>
+        <Text style={styles.title}>
+          {profile ? `Dr. ${profile.first_name} ${profile.last_name}` : 'My Profile'}
+        </Text>
         <TouchableOpacity onPress={handleLogout} style={styles.headerButton}>
           <Icon name="logout" size={24} color="#F44336" />
         </TouchableOpacity>
@@ -132,8 +134,9 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    padding: 16,
-    paddingTop: 48,
+    paddingHorizontal: 16,
+    paddingTop: 32,
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

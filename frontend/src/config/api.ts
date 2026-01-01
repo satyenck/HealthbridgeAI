@@ -2,7 +2,7 @@ export const API_CONFIG = {
   BASE_URL: __DEV__
     ? 'http://localhost:8000'
     : 'https://your-production-api.com',
-  TIMEOUT: 30000,
+  TIMEOUT: 90000, // 90 seconds for AI/translation operations
 };
 
 export const API_ENDPOINTS = {
@@ -72,6 +72,8 @@ export const API_ENDPOINTS = {
   DOCTOR_PENDING_REPORTS: '/api/doctor/reports/pending',
   DOCTOR_REVIEWED_REPORTS: '/api/doctor/reports/my-reviewed',
   DOCTOR_STATS: '/api/doctor/stats',
+  SEARCH_DOCTORS: '/api/doctor/search-public',
+  CREATE_BASIC_DOCTOR: '/api/doctor/create-basic',
 
   // ============================================================================
   // LAB PORTAL

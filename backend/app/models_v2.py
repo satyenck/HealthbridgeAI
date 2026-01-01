@@ -92,7 +92,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships to role-specific profiles
-    patient_profile = relationship("PatientProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    patient_profile = relationship("PatientProfile", foreign_keys="[PatientProfile.user_id]", back_populates="user", uselist=False, cascade="all, delete-orphan")
     doctor_profile = relationship("DoctorProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     lab_profile = relationship("LabProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     pharmacy_profile = relationship("PharmacyProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -125,10 +125,13 @@ class PatientProfile(Base):
     date_of_birth = Column(Date, nullable=False, index=True)
     gender = Column(String(20), nullable=False)
     general_health_issues = Column(Text, nullable=True)
+    primary_doctor_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True, index=True)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    user = relationship("User", back_populates="patient_profile")
+    user = relationship("User", foreign_keys=[user_id], back_populates="patient_profile")
+    primary_doctor = relationship("User", foreign_keys=[primary_doctor_id])
 
 
 class DoctorProfile(Base):
@@ -283,6 +286,10 @@ class SummaryReport(Base):
     #   "next_steps": "AI next steps guidance"
     # }
     content = Column(JSONB, nullable=False)
+
+    # Cached translations (JSONB with same structure as content)
+    gujarati_content = Column(JSONB, nullable=True)
+    hindi_content = Column(JSONB, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

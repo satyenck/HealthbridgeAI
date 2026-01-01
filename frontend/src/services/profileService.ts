@@ -27,7 +27,7 @@ export const profileService = {
   async updateProfile(
     data: Partial<Omit<PatientProfile, 'user_id' | 'created_at' | 'updated_at'>>,
   ): Promise<PatientProfile> {
-    return await apiService.put<PatientProfile>(API_ENDPOINTS.PROFILE, data);
+    return await apiService.patch<PatientProfile>(API_ENDPOINTS.PROFILE, data);
   },
 
   /**

@@ -6,7 +6,7 @@ from app.schemas_v2 import (
     UserCreate, UserResponse, Token,
     GoogleLoginRequest, PhoneSendCodeRequest, PhoneLoginRequest
 )
-from app.auth import create_access_token
+from app.auth import create_access_token, get_current_user
 from app.services.google_auth import GoogleAuthService
 from app.services.phone_auth import phone_auth_service
 from datetime import timedelta
@@ -125,4 +125,22 @@ async def verify_phone_code(
         "token_type": "bearer",
         "user_id": user.user_id,
         "role": user.role
+    }
+
+
+@router.get("/me")
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current authenticated user's information.
+    Returns user_id, role, phone_number, and email.
+    """
+    return {
+        "user_id": str(current_user.user_id),
+        "role": current_user.role.value,
+        "phone_number": current_user.phone_number,
+        "email": current_user.email,
+        "is_active": current_user.is_active
     }

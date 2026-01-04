@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import {authService} from '../services/authService';
 
 export const LoginScreen = ({navigation}: any) => {
@@ -48,12 +49,14 @@ export const LoginScreen = ({navigation}: any) => {
       const roleToScreen: {[key: string]: string} = {
         'PATIENT': 'PatientApp',
         'DOCTOR': 'DoctorApp',
+        'DOCTOR_ASSISTANT': 'DoctorAssistantApp',
         'LAB': 'LabApp',
         'PHARMACY': 'PharmacyApp',
         'ADMIN': 'AdminApp'
       };
 
       const screenName = roleToScreen[response.role] || 'PatientApp';
+      console.log('[LoginScreen] User role:', response.role, '→ Navigating to:', screenName);
       navigation.replace(screenName as never);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.detail || 'Invalid code');
@@ -71,8 +74,13 @@ export const LoginScreen = ({navigation}: any) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>HealthbridgeAI</Text>
-      <Text style={styles.subtitle}>Your AI Health Companion</Text>
+      <View style={styles.headerContainer}>
+        <View style={styles.logoContainer}>
+          <Icon name="favorite" size={36} color="#fff" />
+        </View>
+        <Text style={styles.title}>HealthbridgeAI</Text>
+      </View>
+      <Text style={styles.subtitle}>Your Personal Health Assistant</Text>
 
       <View style={styles.formContainer}>
         <Text style={styles.label}>Phone Number</Text>
@@ -148,12 +156,30 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'center',
   },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  logoContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#3498db',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    shadowColor: '#3498db',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#2c3e50',
-    textAlign: 'center',
-    marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,

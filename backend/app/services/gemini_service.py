@@ -740,6 +740,95 @@ Provide ONLY the question, no other text."""
         except Exception as e:
             raise Exception(f"Failed to conduct symptom interview: {str(e)}")
 
+    def extract_vitals_from_conversation(self, conversation_text: str, current_date: str = None) -> dict:
+        """
+        Extract vital signs from patient's conversational input.
+        Handles natural language like "My blood pressure was 120/80 yesterday" or
+        "I measured my weight this morning, it was 75 kg".
+
+        Args:
+            conversation_text: Patient's natural language description of vitals
+            current_date: Current date in YYYY-MM-DD format for relative date parsing
+
+        Returns:
+            Dictionary with:
+            - vitals: List of vital measurements with dates
+            - needs_clarification: Boolean indicating if AI needs more info
+            - clarification_question: Question to ask patient if clarification needed
+        """
+        try:
+            system_prompt = """You are a medical AI assistant helping patients log their vital signs.
+Extract vital measurements from the patient's natural language input.
+
+Vital signs to look for:
+- Blood pressure (systolic/diastolic)
+- Heart rate / Pulse
+- Temperature
+- Weight
+- Height
+- Oxygen level / SpO2
+- Respiratory rate
+- Blood glucose / sugar level
+- BMI
+- Pain level (0-10 scale)
+
+Date handling:
+- If patient mentions "today", "this morning", "tonight" - use current_date
+- If patient mentions "yesterday" - use current_date minus 1 day
+- If patient mentions specific dates like "December 25" or "last Monday" - calculate the actual date
+- If no date mentioned, assume current_date
+
+Be conversational and helpful. If information is unclear or incomplete, ask for clarification."""
+
+            user_prompt = f"""Current date: {current_date}
+
+Patient says: "{conversation_text}"
+
+Extract all vital measurements and respond in JSON format:
+{{
+    "vitals": [
+        {{
+            "date": "YYYY-MM-DD",
+            "blood_pressure_sys": 120,  // or null
+            "blood_pressure_dia": 80,   // or null
+            "heart_rate": 72,           // or null
+            "temperature": 98.6,        // or null
+            "weight": 70.5,             // or null
+            "height": 170,              // or null
+            "oxygen_level": 98,         // or null
+            "respiratory_rate": 16,     // or null
+            "glucose_level": 100,       // or null
+            "pain_level": 3             // or null
+        }}
+    ],
+    "needs_clarification": false,  // true if you need more info
+    "clarification_question": null,  // question to ask if needs_clarification is true
+    "friendly_confirmation": "I've recorded your blood pressure of 120/80 from yesterday."  // friendly confirmation message
+}}
+
+Guidelines:
+- Extract only values explicitly mentioned
+- Set null for values not mentioned
+- If multiple measurements with different dates, create separate entries in vitals array
+- If unclear or ambiguous, set needs_clarification to true and provide a clarification_question
+- Always provide a friendly_confirmation message summarizing what was recorded"""
+
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
+            response = self.text_model.generate_content(
+                full_prompt,
+                generation_config=genai.GenerationConfig(
+                    temperature=0.3,
+                    response_mime_type="application/json"
+                )
+            )
+
+            result = json.loads(response.text)
+            return result
+
+        except Exception as e:
+            raise Exception(f"Failed to extract vitals from conversation: {str(e)}")
+
 
 # Create singleton instance
 gemini_service = GeminiService()

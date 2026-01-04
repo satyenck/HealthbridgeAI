@@ -107,6 +107,32 @@ export const DoctorProfileScreen = ({navigation}: any) => {
               </View>
             )}
 
+            {profile.associated_doctors && profile.associated_doctors.length > 0 && (
+              <View style={styles.infoCard}>
+                <Text style={styles.label}>Associated Doctors</Text>
+                {profile.associated_doctors.map((doctor: any, index: number) => (
+                  <View key={doctor.user_id} style={styles.associatedDoctorItem}>
+                    <Icon name="local-hospital" size={20} color="#4CAF50" />
+                    <View style={styles.associatedDoctorInfo}>
+                      <Text style={styles.associatedDoctorName}>
+                        Dr. {doctor.first_name} {doctor.last_name}
+                      </Text>
+                      {doctor.specialty && (
+                        <Text style={styles.associatedDoctorSpecialty}>
+                          {doctor.specialty}
+                        </Text>
+                      )}
+                      {doctor.hospital_name && (
+                        <Text style={styles.associatedDoctorHospital}>
+                          {doctor.hospital_name}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <Icon name="logout" size={20} color="#F44336" />
               <Text style={styles.logoutText}>Logout</Text>
@@ -205,6 +231,32 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#999',
+  },
+  associatedDoctorItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  associatedDoctorInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  associatedDoctorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  associatedDoctorSpecialty: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  associatedDoctorHospital: {
+    fontSize: 13,
     color: '#999',
   },
 });

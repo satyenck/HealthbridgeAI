@@ -49,7 +49,11 @@ interface HealthInsights {
   pending_prescriptions: PendingPrescription[];
 }
 
-export const InsightsScreen = () => {
+interface InsightsScreenProps {
+  navigation: any;
+}
+
+export const InsightsScreen = ({navigation}: InsightsScreenProps) => {
   const [insights, setInsights] = useState<HealthInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -250,12 +254,7 @@ export const InsightsScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View style={styles.headerText}>
-            <Text style={styles.title}>My Health Insights</Text>
-            <Text style={styles.subtitle}>
-              Personalized health guidance for you
-            </Text>
-          </View>
+          <Text style={styles.pageTitle}>Health Insights</Text>
           <View style={styles.headerButtons}>
             <TouchableOpacity
               style={[styles.iconButton, isSpeaking && styles.iconButtonActive]}
@@ -284,6 +283,15 @@ export const InsightsScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Vitals Chart Button */}
+        <TouchableOpacity
+          style={styles.vitalsChartButton}
+          onPress={() => navigation.navigate('VitalsChart')}>
+          <Icon name="show-chart" size={24} color="#4CAF50" />
+          <Text style={styles.vitalsChartButtonText}>View Vitals Charts</Text>
+          <Icon name="chevron-right" size={24} color="#4CAF50" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -449,8 +457,9 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    padding: 16,
-    paddingTop: 48,
+    padding: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
@@ -460,20 +469,12 @@ const styles = StyleSheet.create({
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
-  headerText: {
-    flex: 1,
-  },
-  title: {
+  pageTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#333',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -506,6 +507,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2196F3',
     marginLeft: 6,
+  },
+  vitalsChartButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  vitalsChartButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4CAF50',
+    flex: 1,
+    marginLeft: 12,
   },
   content: {
     flex: 1,

@@ -16,9 +16,10 @@ import uuid
 # ============================================================================
 
 class UserRole(str, enum.Enum):
-    """Five distinct user roles in the system"""
+    """Six distinct user roles in the system"""
     PATIENT = "PATIENT"
     DOCTOR = "DOCTOR"
+    DOCTOR_ASSISTANT = "DOCTOR_ASSISTANT"
     LAB = "LAB"
     PHARMACY = "PHARMACY"
     ADMIN = "ADMIN"
@@ -96,6 +97,7 @@ class User(Base):
     doctor_profile = relationship("DoctorProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     lab_profile = relationship("LabProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     pharmacy_profile = relationship("PharmacyProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    doctor_assistant_profile = relationship("DoctorAssistantProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
     # Encounters as patient
     patient_encounters = relationship("Encounter", foreign_keys="[Encounter.patient_id]", back_populates="patient")
@@ -195,6 +197,44 @@ class PharmacyProfile(Base):
     user = relationship("User", back_populates="pharmacy_profile")
 
 
+class DoctorAssistantProfile(Base):
+    """
+    Doctor's Assistant profile.
+    Assistants help doctors with data entry, vitals recording, and follow-ups.
+    Can be associated with up to 5 doctors.
+    """
+    __tablename__ = "doctor_assistant_profiles"
+
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), primary_key=True)
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    email = Column(String, nullable=True)
+    phone = Column(String, nullable=False)
+    address = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user = relationship("User", back_populates="doctor_assistant_profile")
+    doctor_associations = relationship("DoctorAssistantAssociation", back_populates="assistant", foreign_keys="[DoctorAssistantAssociation.assistant_id]", cascade="all, delete-orphan")
+
+
+class DoctorAssistantAssociation(Base):
+    """
+    Junction table linking doctor assistants to doctors.
+    Allows many-to-many relationship with max 5 doctors per assistant.
+    """
+    __tablename__ = "doctor_assistant_associations"
+
+    association_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    assistant_id = Column(UUID(as_uuid=True), ForeignKey("doctor_assistant_profiles.user_id"), nullable=False, index=True)
+    doctor_id = Column(UUID(as_uuid=True), ForeignKey("doctor_profiles.user_id"), nullable=False, index=True)
+    hospital_name = Column(String(200), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    assistant = relationship("DoctorAssistantProfile", back_populates="doctor_associations", foreign_keys=[assistant_id])
+    doctor = relationship("DoctorProfile", foreign_keys=[doctor_id])
+
+
 # ============================================================================
 # HEALTH HISTORY & TIMELINE (Longitudinal Data)
 # ============================================================================
@@ -234,13 +274,172 @@ class VitalsLog(Base):
 
     vital_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     encounter_id = Column(UUID(as_uuid=True), ForeignKey("encounters.encounter_id"), nullable=False, index=True)
+
+    # Existing vital signs (preserved)
     blood_pressure_sys = Column(Integer, nullable=True)
     blood_pressure_dia = Column(Integer, nullable=True)
     heart_rate = Column(Integer, nullable=True)
     oxygen_level = Column(Integer, nullable=True)
     weight = Column(Float, nullable=True)
     temperature = Column(Float, nullable=True)
+
+    # Additional vital signs
+    height = Column(Float, nullable=True)  # in cm
+    bmi = Column(Float, nullable=True)  # body mass index
+    respiratory_rate = Column(Integer, nullable=True)  # breaths per minute
+    pulse = Column(Integer, nullable=True)  # pulse rate (bpm)
+
+    # Blood pressure derived metrics
+    mean_arterial_pressure = Column(Float, nullable=True)  # MAP
+    pulse_pressure = Column(Float, nullable=True)  # Systolic - Diastolic
+
+    # Oxygen and perfusion
+    oxygen_saturation = Column(Float, nullable=True)  # SpO2 percentage
+    perfusion_index = Column(Float, nullable=True)  # PI %
+    capillary_refill_time = Column(Float, nullable=True)  # seconds
+
+    # Metabolic measurements
+    glucose_level = Column(Float, nullable=True)  # mg/dL
+    fasting_glucose = Column(Float, nullable=True)  # mg/dL when fasting
+    random_glucose = Column(Float, nullable=True)  # mg/dL random
+    ketone_level = Column(Float, nullable=True)  # mmol/L
+
+    # Body composition
+    body_fat_percentage = Column(Float, nullable=True)
+    muscle_mass = Column(Float, nullable=True)  # kg
+    bone_mass = Column(Float, nullable=True)  # kg
+    body_water_percentage = Column(Float, nullable=True)
+    visceral_fat_rating = Column(Float, nullable=True)
+
+    # Circumference measurements
+    waist_circumference = Column(Float, nullable=True)  # cm
+    hip_circumference = Column(Float, nullable=True)  # cm
+    neck_circumference = Column(Float, nullable=True)  # cm
+    chest_circumference = Column(Float, nullable=True)  # cm
+    head_circumference = Column(Float, nullable=True)  # cm (pediatric)
+    mid_upper_arm_circumference = Column(Float, nullable=True)  # cm (MUAC)
+
+    # Waist-to-hip ratio
+    waist_hip_ratio = Column(Float, nullable=True)
+
+    # Pain assessment
+    pain_level = Column(Integer, nullable=True)  # 0-10 scale
+    pain_location = Column(Text, nullable=True)
+    pain_description = Column(Text, nullable=True)
+
+    # Neurological
+    consciousness_level = Column(Text, nullable=True)  # Alert, Voice, Pain, Unresponsive (AVPU)
+    glasgow_coma_scale = Column(Integer, nullable=True)  # GCS 3-15
+    pupil_response_left = Column(Text, nullable=True)  # Normal, Sluggish, Fixed
+    pupil_response_right = Column(Text, nullable=True)
+    pupil_size_left = Column(Float, nullable=True)  # mm
+    pupil_size_right = Column(Float, nullable=True)  # mm
+
+    # Cardiovascular additional
+    peripheral_pulse_strength = Column(Text, nullable=True)  # Strong, Weak, Absent
+    capillary_refill_location = Column(Text, nullable=True)  # Central, Peripheral
+    edema_location = Column(Text, nullable=True)
+    edema_grade = Column(Integer, nullable=True)  # 1-4+
+
+    # Respiratory additional
+    breath_sounds = Column(Text, nullable=True)  # Clear, Wheezes, Crackles, etc.
+    cough_type = Column(Text, nullable=True)  # Dry, Productive, etc.
+    sputum_color = Column(Text, nullable=True)
+    chest_expansion = Column(Text, nullable=True)  # Equal, Unequal
+    use_of_accessory_muscles = Column(Boolean, nullable=True)
+
+    # Skin assessment
+    skin_color = Column(Text, nullable=True)  # Normal, Pale, Cyanotic, Jaundiced
+    skin_temperature = Column(Text, nullable=True)  # Warm, Cool, Hot
+    skin_moisture = Column(Text, nullable=True)  # Dry, Moist, Diaphoretic
+    skin_turgor = Column(Text, nullable=True)  # Normal, Poor
+    capillary_blanching = Column(Text, nullable=True)
+
+    # Hydration status
+    mucous_membranes = Column(Text, nullable=True)  # Moist, Dry
+    urine_output = Column(Float, nullable=True)  # mL (if measured)
+    urine_color = Column(Text, nullable=True)
+    fluid_intake = Column(Float, nullable=True)  # mL per day
+
+    # Gastrointestinal
+    bowel_sounds = Column(Text, nullable=True)  # Normal, Hyperactive, Hypoactive, Absent
+    last_bowel_movement = Column(DateTime(timezone=True), nullable=True)
+    abdomen_appearance = Column(Text, nullable=True)  # Soft, Distended, Rigid
+    nausea = Column(Boolean, nullable=True)
+    vomiting = Column(Boolean, nullable=True)
+
+    # Genitourinary
+    urinary_frequency = Column(Text, nullable=True)
+    urinary_urgency = Column(Boolean, nullable=True)
+    dysuria = Column(Boolean, nullable=True)
+    incontinence = Column(Boolean, nullable=True)
+
+    # Mobility and functional status
+    mobility_status = Column(Text, nullable=True)  # Independent, Assisted, Bedbound
+    fall_risk_score = Column(Integer, nullable=True)
+    balance_assessment = Column(Text, nullable=True)  # Steady, Unsteady
+    gait_assessment = Column(Text, nullable=True)
+
+    # Mental status
+    orientation = Column(Text, nullable=True)  # Oriented x3 (Person, Place, Time)
+    mood = Column(Text, nullable=True)
+    affect = Column(Text, nullable=True)
+    speech = Column(Text, nullable=True)  # Clear, Slurred, Aphasic
+    memory = Column(Text, nullable=True)  # Intact, Impaired
+
+    # Sleep
+    sleep_quality = Column(Text, nullable=True)
+    sleep_hours = Column(Float, nullable=True)
+    sleep_disturbances = Column(Text, nullable=True)
+
+    # Nutrition
+    appetite = Column(Text, nullable=True)  # Good, Poor, None
+    dietary_intake_percentage = Column(Integer, nullable=True)  # % of meal consumed
+    special_diet = Column(Text, nullable=True)
+    nutrition_risk_score = Column(Integer, nullable=True)
+
+    # Wound assessment (if applicable)
+    wound_present = Column(Boolean, nullable=True)
+    wound_location = Column(Text, nullable=True)
+    wound_size = Column(Text, nullable=True)  # Length x Width x Depth
+    wound_type = Column(Text, nullable=True)  # Pressure, Surgical, Traumatic
+    wound_drainage = Column(Text, nullable=True)  # Serous, Sanguineous, Purulent
+    wound_healing_stage = Column(Text, nullable=True)
+
+    # Infection indicators
+    fever_present = Column(Boolean, nullable=True)
+    chills = Column(Boolean, nullable=True)
+    sweating = Column(Boolean, nullable=True)
+    signs_of_infection = Column(Text, nullable=True)
+
+    # Medication-related vitals
+    medication_timing = Column(Text, nullable=True)  # Before meds, After meds
+    fasting_status = Column(Boolean, nullable=True)  # For glucose, lipids tests
+
+    # Environmental factors
+    measurement_position = Column(Text, nullable=True)  # Sitting, Standing, Lying, Supine
+    activity_level_before = Column(Text, nullable=True)  # Resting, Post-exercise
+    environmental_temperature = Column(Float, nullable=True)  # Room temp in Celsius
+
+    # Special populations
+    gestational_age = Column(Integer, nullable=True)  # weeks (for OB patients)
+    apgar_score_1min = Column(Integer, nullable=True)  # Neonatal assessment
+    apgar_score_5min = Column(Integer, nullable=True)
+    fundal_height = Column(Float, nullable=True)  # cm (OB)
+    fetal_heart_rate = Column(Integer, nullable=True)  # bpm (OB)
+
+    # Additional clinical notes
+    clinical_notes = Column(Text, nullable=True)
+    abnormal_findings = Column(Text, nullable=True)
+    assessment_summary = Column(Text, nullable=True)
+
+    # Metadata
+    measured_by = Column(Text, nullable=True)  # Healthcare provider name/ID
+    measurement_device = Column(Text, nullable=True)  # Device used for measurement
+    verified_by = Column(Text, nullable=True)  # Supervisor verification if needed
+
     recorded_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     encounter = relationship("Encounter", back_populates="vitals")
 
@@ -372,3 +571,36 @@ class ProfileShare(Base):
 
     patient = relationship("User", foreign_keys=[patient_id], back_populates="shared_profiles")
     doctor = relationship("User", foreign_keys=[doctor_id], back_populates="received_shares")
+
+
+# ============================================================================
+# HEALTH INSIGHTS CACHE
+# ============================================================================
+
+class HealthInsightsCache(Base):
+    """
+    Caches AI-generated health insights to avoid unnecessary API calls.
+    Only regenerates when new data (vitals, labs, reviewed reports) is available.
+    """
+    __tablename__ = "health_insights_cache"
+
+    cache_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    patient_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False, unique=True, index=True)
+
+    # Cached insights content (JSONB)
+    insights_data = Column(JSONB, nullable=False)
+
+    # Language of cached insights
+    language = Column(String(20), default="English", nullable=False)
+
+    # Timestamps for tracking data freshness
+    last_generated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_vitals_timestamp = Column(DateTime(timezone=True))
+    last_lab_result_timestamp = Column(DateTime(timezone=True))
+    last_reviewed_report_timestamp = Column(DateTime(timezone=True))
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    patient = relationship("User", foreign_keys=[patient_id])

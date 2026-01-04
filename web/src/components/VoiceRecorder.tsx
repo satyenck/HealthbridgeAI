@@ -102,13 +102,13 @@ export function VoiceRecorder({ onRecordingComplete, isRecording, setIsRecording
         className={`record-button ${isRecording ? 'recording' : 'idle'}`}
         onClick={toggleRecording}
       >
-        {isRecording ? '⬤' : '⭕'}
+        {isRecording ? '⏹' : '🎤'}
       </button>
       {isRecording && (
-        <div className="recording-timer">{formatTime(recordingTime)}</div>
+        <div className="recording-timer">{recordingTime}s</div>
       )}
       <p className="record-hint">
-        {isRecording ? 'Recording... Click to stop' : 'Click to start recording'}
+        {isRecording ? 'Tap to stop recording' : 'Tap to start recording'}
       </p>
     </div>
   );

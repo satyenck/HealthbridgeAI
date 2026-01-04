@@ -4,37 +4,55 @@ Patient search, pending reports, patient timeline
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import func
 from typing import List, Optional
 from uuid import UUID
 from datetime import date
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.models_v2 import (
     User, PatientProfile, Encounter, VitalsLog, LabResultsLog,
-    SummaryReport, ReportStatus, MediaFile, DoctorProfile
+    SummaryReport, ReportStatus, MediaFile, DoctorProfile,
+    DoctorAssistantAssociation, UserRole
 )
 from app.schemas_v2 import (
     PatientProfileResponse, PatientTimelineResponse,
     ComprehensiveEncounterResponse, SummaryReportResponse,
     DoctorProfileResponse
 )
-from app.auth import get_current_doctor
+from app.auth import get_current_doctor, get_current_doctor_or_assistant
 
 router = APIRouter(prefix="/api/doctor", tags=["Doctor Portal"])
+
+
+# Request models
+class ReviewReportRequest(BaseModel):
+    diagnosis: str
+    treatment_plan: str = ""
+    next_steps: str = ""
+    tests: str = ""
+    prescription: str = ""
+
+
+class VoiceEditRequest(BaseModel):
+    report_id: str
+    audio_base64: str
 
 
 # ============================================================================
 # DOCTOR PROFILE
 # ============================================================================
 
-@router.get("/profile/", response_model=DoctorProfileResponse)
+@router.get("/profile/")
 async def get_doctor_profile(
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
-    Get the current doctor's profile information
+    Get the current doctor's profile information.
+    For doctor assistants, also returns associated doctors list.
     """
     doctor_profile = db.query(DoctorProfile).filter(
         DoctorProfile.user_id == current_doctor.user_id
@@ -46,7 +64,46 @@ async def get_doctor_profile(
             detail="Doctor profile not found"
         )
 
-    return doctor_profile
+    # Convert to dict for response
+    profile_data = {
+        "user_id": str(doctor_profile.user_id),
+        "first_name": doctor_profile.first_name,
+        "last_name": doctor_profile.last_name,
+        "email": doctor_profile.email,
+        "phone": doctor_profile.phone,
+        "address": doctor_profile.address,
+        "hospital_name": doctor_profile.hospital_name,
+        "specialty": doctor_profile.specialty,
+        "degree": doctor_profile.degree,
+        "last_degree_year": doctor_profile.last_degree_year,
+        "created_at": doctor_profile.created_at,
+        "updated_at": doctor_profile.updated_at,
+    }
+
+    # If this is a doctor assistant, add associated doctors
+    if current_doctor.role == UserRole.DOCTOR_ASSISTANT:
+        associations = db.query(DoctorAssistantAssociation).filter(
+            DoctorAssistantAssociation.assistant_id == current_doctor.user_id
+        ).all()
+
+        associated_doctors = []
+        for assoc in associations:
+            # Get the doctor's profile
+            assoc_doctor = db.query(DoctorProfile).filter(
+                DoctorProfile.user_id == assoc.doctor_id
+            ).first()
+            if assoc_doctor:
+                associated_doctors.append({
+                    "user_id": str(assoc_doctor.user_id),
+                    "first_name": assoc_doctor.first_name,
+                    "last_name": assoc_doctor.last_name,
+                    "specialty": assoc_doctor.specialty,
+                    "hospital_name": assoc.hospital_name or assoc_doctor.hospital_name,
+                })
+
+        profile_data["associated_doctors"] = associated_doctors
+
+    return profile_data
 
 
 @router.get("/search-public")
@@ -150,23 +207,48 @@ async def create_basic_doctor(
 
 @router.get("/patients/my-patients", response_model=List[PatientProfileResponse])
 async def get_my_patients(
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
     Get list of unique patients that this doctor has reviewed.
+    For doctor assistants, returns patients of all associated doctors.
     Returns patient profiles with basic information.
     """
-    # Get unique patient IDs from encounters this doctor has reviewed
-    patient_ids = db.query(Encounter.patient_id).join(
-        SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
-    ).filter(
-        Encounter.doctor_id == current_doctor.user_id,
-        SummaryReport.status == ReportStatus.REVIEWED
-    ).distinct().all()
+    # Determine which doctor IDs to query
+    if current_doctor.role == UserRole.DOCTOR_ASSISTANT:
+        # Get all doctors this assistant is associated with
+        associations = db.query(DoctorAssistantAssociation).filter(
+            DoctorAssistantAssociation.assistant_id == current_doctor.user_id
+        ).all()
+
+        doctor_ids = [assoc.doctor_id for assoc in associations]
+
+        if not doctor_ids:
+            # No associated doctors, return empty list
+            return []
+
+        # Get unique patient IDs from encounters of associated doctors
+        patient_ids = db.query(Encounter.patient_id).join(
+            SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
+        ).filter(
+            Encounter.doctor_id.in_(doctor_ids),
+            SummaryReport.status == ReportStatus.REVIEWED
+        ).distinct().all()
+    else:
+        # Regular doctor - get their own patients
+        patient_ids = db.query(Encounter.patient_id).join(
+            SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
+        ).filter(
+            Encounter.doctor_id == current_doctor.user_id,
+            SummaryReport.status == ReportStatus.REVIEWED
+        ).distinct().all()
 
     # Extract patient_id values from tuples
     patient_ids = [pid[0] for pid in patient_ids]
+
+    if not patient_ids:
+        return []
 
     # Get patient profiles
     patients = db.query(PatientProfile).filter(
@@ -183,7 +265,7 @@ async def search_patients(
     last_name: Optional[str] = None,
     phone_number: Optional[str] = None,
     dob: Optional[date] = None,
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
@@ -248,7 +330,7 @@ async def search_patients(
 @router.get("/patients/{patient_id}/timeline", response_model=PatientTimelineResponse)
 async def get_patient_timeline(
     patient_id: UUID,
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
@@ -324,48 +406,124 @@ async def get_patient_timeline(
 # PENDING REPORTS QUEUE
 # ============================================================================
 
-@router.get("/reports/pending", response_model=List[SummaryReportResponse])
+@router.get("/reports/pending")
 async def get_pending_reports(
     limit: int = 50,
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
     Get pending reports for doctor review.
+    For doctor assistants, shows reports for all associated doctors.
     Returns:
     - Reports from my patients (assigned to me)
     - Reports not assigned to any doctor (unassigned)
     """
-    reports = db.query(SummaryReport).join(
-        Encounter, SummaryReport.encounter_id == Encounter.encounter_id
-    ).filter(
-        SummaryReport.status == ReportStatus.PENDING_REVIEW,
-        # My patients OR unassigned
-        (Encounter.doctor_id == current_doctor.user_id) | (Encounter.doctor_id == None)
-    ).order_by(
-        SummaryReport.priority.desc(),  # High priority first
-        SummaryReport.created_at.asc()  # Older reports first
-    ).limit(limit).all()
+    # Determine which doctor IDs to query
+    if current_doctor.role == UserRole.DOCTOR_ASSISTANT:
+        # Get all doctors this assistant is associated with
+        associations = db.query(DoctorAssistantAssociation).filter(
+            DoctorAssistantAssociation.assistant_id == current_doctor.user_id
+        ).all()
 
-    return reports
+        doctor_ids = [assoc.doctor_id for assoc in associations]
+
+        if not doctor_ids:
+            # No associated doctors, return empty list
+            return []
+
+        # Get pending reports for all associated doctors
+        reports = db.query(SummaryReport).join(
+            Encounter, SummaryReport.encounter_id == Encounter.encounter_id
+        ).filter(
+            SummaryReport.status == ReportStatus.PENDING_REVIEW,
+            # Reports from associated doctors OR unassigned
+            (Encounter.doctor_id.in_(doctor_ids)) | (Encounter.doctor_id == None)
+        ).order_by(
+            SummaryReport.priority.desc(),  # High priority first
+            SummaryReport.created_at.asc()  # Older reports first
+        ).limit(limit).all()
+    else:
+        # Regular doctor - get their own pending reports
+        reports = db.query(SummaryReport).join(
+            Encounter, SummaryReport.encounter_id == Encounter.encounter_id
+        ).filter(
+            SummaryReport.status == ReportStatus.PENDING_REVIEW,
+            # My patients OR unassigned
+            (Encounter.doctor_id == current_doctor.user_id) | (Encounter.doctor_id == None)
+        ).order_by(
+            SummaryReport.priority.desc(),  # High priority first
+            SummaryReport.created_at.asc()  # Older reports first
+        ).limit(limit).all()
+
+    # Enrich reports with patient information
+    enriched_reports = []
+    for report in reports:
+        encounter = db.query(Encounter).filter(
+            Encounter.encounter_id == report.encounter_id
+        ).first()
+
+        patient = db.query(PatientProfile).filter(
+            PatientProfile.user_id == encounter.patient_id
+        ).first()
+
+        user = db.query(User).filter(User.user_id == encounter.patient_id).first()
+
+        content = report.content or {}
+
+        enriched_reports.append({
+            "report_id": str(report.report_id),
+            "encounter_id": str(report.encounter_id),
+            "patient_id": str(encounter.patient_id),
+            "patient_name": f"{patient.first_name} {patient.last_name}" if patient else "Unknown",
+            "patient_phone": user.phone_number if user else "",
+            "created_at": report.created_at.isoformat(),
+            "symptoms": content.get("symptoms", ""),
+            "preliminary_assessment": content.get("diagnosis", ""),
+            "status": report.status.value,
+        })
+
+    return enriched_reports
 
 
-@router.get("/reports/my-reviewed", response_model=List[SummaryReportResponse])
+@router.get("/reports/my-reviewed")
 async def get_my_reviewed_reports(
     limit: int = 50,
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
     Get reports reviewed by current doctor.
+    For doctor assistants, shows reports reviewed by all associated doctors.
     Returns encounters where doctor is assigned and report is REVIEWED.
     """
-    # Get encounters where this doctor is assigned
-    encounters = db.query(Encounter).filter(
-        Encounter.doctor_id == current_doctor.user_id
-    ).all()
+    # Determine which doctor IDs to query
+    if current_doctor.role == UserRole.DOCTOR_ASSISTANT:
+        # Get all doctors this assistant is associated with
+        associations = db.query(DoctorAssistantAssociation).filter(
+            DoctorAssistantAssociation.assistant_id == current_doctor.user_id
+        ).all()
+
+        doctor_ids = [assoc.doctor_id for assoc in associations]
+
+        if not doctor_ids:
+            # No associated doctors, return empty list
+            return []
+
+        # Get encounters where any of the associated doctors are assigned
+        encounters = db.query(Encounter).filter(
+            Encounter.doctor_id.in_(doctor_ids)
+        ).all()
+    else:
+        # Regular doctor - get their own encounters
+        encounters = db.query(Encounter).filter(
+            Encounter.doctor_id == current_doctor.user_id
+        ).all()
 
     encounter_ids = [e.encounter_id for e in encounters]
+
+    if not encounter_ids:
+        return []
 
     # Get reviewed reports for these encounters
     reports = db.query(SummaryReport).filter(
@@ -373,7 +531,35 @@ async def get_my_reviewed_reports(
         SummaryReport.status == ReportStatus.REVIEWED
     ).order_by(SummaryReport.updated_at.desc()).limit(limit).all()
 
-    return reports
+    # Enrich reports with patient information
+    enriched_reports = []
+    for report in reports:
+        encounter = db.query(Encounter).filter(
+            Encounter.encounter_id == report.encounter_id
+        ).first()
+
+        patient = db.query(PatientProfile).filter(
+            PatientProfile.user_id == encounter.patient_id
+        ).first()
+
+        user = db.query(User).filter(User.user_id == encounter.patient_id).first()
+
+        content = report.content or {}
+
+        enriched_reports.append({
+            "report_id": str(report.report_id),
+            "encounter_id": str(report.encounter_id),
+            "patient_id": str(encounter.patient_id),
+            "patient_name": f"{patient.first_name} {patient.last_name}" if patient else "Unknown",
+            "patient_phone": user.phone_number if user else "",
+            "created_at": report.created_at.isoformat(),
+            "reviewed_at": report.updated_at.isoformat() if report.updated_at else report.created_at.isoformat(),
+            "diagnosis": content.get("diagnosis", ""),
+            "treatment_plan": content.get("treatment", ""),
+            "status": report.status.value,
+        })
+
+    return enriched_reports
 
 
 # ============================================================================
@@ -383,7 +569,7 @@ async def get_my_reviewed_reports(
 @router.get("/patients/{patient_id}", response_model=PatientProfileResponse)
 async def get_patient_profile(
     patient_id: UUID,
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
@@ -402,54 +588,295 @@ async def get_patient_profile(
     return patient
 
 
+@router.get("/patients/{patient_id}/reports", response_model=List[SummaryReportResponse])
+async def get_patient_reports(
+    patient_id: UUID,
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all reports for a specific patient.
+    """
+    # Get all encounters for this patient
+    encounters = db.query(Encounter).filter(
+        Encounter.patient_id == patient_id
+    ).all()
+
+    encounter_ids = [e.encounter_id for e in encounters]
+
+    if not encounter_ids:
+        return []
+
+    # Get all reports for these encounters
+    reports = db.query(SummaryReport).filter(
+        SummaryReport.encounter_id.in_(encounter_ids)
+    ).order_by(SummaryReport.created_at.desc()).all()
+
+    return reports
+
+
+@router.get("/reports/{report_id}")
+async def get_report_details(
+    report_id: UUID,
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed information for a specific report.
+    """
+    report = db.query(SummaryReport).filter(
+        SummaryReport.report_id == report_id
+    ).first()
+
+    if not report:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report not found"
+        )
+
+    # Get encounter info
+    encounter = db.query(Encounter).filter(
+        Encounter.encounter_id == report.encounter_id
+    ).first()
+
+    # Get patient info
+    patient = db.query(PatientProfile).filter(
+        PatientProfile.user_id == encounter.patient_id
+    ).first()
+
+    user = db.query(User).filter(User.user_id == encounter.patient_id).first()
+
+    # Extract data from JSONB content field
+    content = report.content or {}
+
+    return {
+        "report_id": str(report.report_id),
+        "encounter_id": str(report.encounter_id),
+        "patient_id": str(encounter.patient_id),
+        "patient_name": f"{patient.first_name} {patient.last_name}",
+        "patient_phone": user.phone_number,
+        "created_at": report.created_at.isoformat(),
+        "reviewed_at": report.updated_at.isoformat() if report.status == ReportStatus.REVIEWED else None,
+        "symptoms": content.get("symptoms", ""),
+        "preliminary_assessment": content.get("diagnosis", ""),
+        "diagnosis": content.get("diagnosis", ""),
+        "treatment_plan": content.get("treatment", ""),
+        "next_steps": content.get("next_steps", ""),
+        "tests": content.get("tests", ""),
+        "prescription": content.get("prescription", ""),
+        "status": report.status.value,
+        "encounter_type": encounter.encounter_type.value if encounter.encounter_type else None,
+    }
+
+
+@router.post("/reports/{report_id}/review")
+async def review_report(
+    report_id: UUID,
+    request: ReviewReportRequest,
+    current_doctor: User = Depends(get_current_doctor),
+    db: Session = Depends(get_db)
+):
+    """
+    Submit review for a report. Only actual doctors can review, not assistants.
+    """
+    report = db.query(SummaryReport).filter(
+        SummaryReport.report_id == report_id
+    ).first()
+
+    if not report:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report not found"
+        )
+
+    # Update report with doctor's review in JSONB content
+    content = report.content or {}
+    content["diagnosis"] = request.diagnosis
+    content["treatment"] = request.treatment_plan
+    content["next_steps"] = request.next_steps
+    content["tests"] = request.tests
+    content["prescription"] = request.prescription
+    report.content = content
+
+    # Mark the JSONB field as modified so SQLAlchemy detects the change
+    flag_modified(report, "content")
+
+    report.status = ReportStatus.REVIEWED
+
+    # Assign doctor to encounter if not already assigned
+    encounter = db.query(Encounter).filter(
+        Encounter.encounter_id == report.encounter_id
+    ).first()
+
+    if not encounter.doctor_id:
+        encounter.doctor_id = current_doctor.user_id
+
+    db.commit()
+
+    return {
+        "message": "Report reviewed successfully",
+        "report_id": str(report_id),
+        "status": "REVIEWED"
+    }
+
+
+@router.post("/reports/voice-edit")
+async def voice_edit_report(
+    request: VoiceEditRequest,
+    current_doctor: User = Depends(get_current_doctor),
+    db: Session = Depends(get_db)
+):
+    """
+    Process voice input to edit a report.
+    Uses AI to extract diagnosis, treatment plan, and next steps from voice.
+    """
+    from app.services.gemini_service import gemini_service
+
+    # Transcribe audio
+    transcribed_text = gemini_service.transcribe_audio(request.audio_base64)
+
+    # Use AI to extract structured report fields
+    extraction_prompt = f"""
+    Extract the following medical report information from this doctor's dictation:
+
+    Transcription: "{transcribed_text}"
+
+    Please extract and return a JSON object with these fields:
+    - diagnosis: The doctor's diagnosis
+    - treatment_plan: Recommended treatment plan
+    - next_steps: Next steps or follow-up instructions
+
+    If any field is not mentioned, set it to empty string.
+    Return ONLY valid JSON, no additional text.
+    """
+
+    response = gemini_service.generate_content(extraction_prompt)
+
+    # Parse JSON response
+    import json
+    try:
+        extracted_data = json.loads(response)
+    except:
+        # Fallback: try to extract JSON from response
+        import re
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            extracted_data = json.loads(json_match.group())
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to extract structured data from voice input"
+            )
+
+    return {
+        "diagnosis": extracted_data.get("diagnosis", ""),
+        "treatment_plan": extracted_data.get("treatment_plan", ""),
+        "next_steps": extracted_data.get("next_steps", ""),
+        "transcribed_text": transcribed_text
+    }
+
+
 # ============================================================================
 # DOCTOR STATISTICS
 # ============================================================================
 
 @router.get("/stats")
 async def get_doctor_stats(
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
     Get statistics for current doctor:
+    For doctor assistants, shows stats for all associated doctors.
     - Total patients seen (unique patients from reviewed reports)
     - Total consultations (reviewed reports + future appointments)
     - Pending reports to review (my patients + unassigned)
     - Reports reviewed by this doctor
     """
-    # Get unique patient count from encounters this doctor has reviewed
-    total_patients = db.query(func.count(func.distinct(Encounter.patient_id))).join(
-        SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
-    ).filter(
-        Encounter.doctor_id == current_doctor.user_id,
-        SummaryReport.status == ReportStatus.REVIEWED
-    ).scalar()
+    # Determine which doctor IDs to query
+    if current_doctor.role == UserRole.DOCTOR_ASSISTANT:
+        # Get all doctors this assistant is associated with
+        associations = db.query(DoctorAssistantAssociation).filter(
+            DoctorAssistantAssociation.assistant_id == current_doctor.user_id
+        ).all()
 
-    # Get consultations (reviewed reports by this doctor)
-    consultations = db.query(func.count(SummaryReport.report_id)).join(
-        Encounter, SummaryReport.encounter_id == Encounter.encounter_id
-    ).filter(
-        Encounter.doctor_id == current_doctor.user_id,
-        SummaryReport.status == ReportStatus.REVIEWED
-    ).scalar()
+        doctor_ids = [assoc.doctor_id for assoc in associations]
 
-    # Get pending reports count (my patients + unassigned)
-    pending_reports = db.query(func.count(SummaryReport.report_id)).join(
-        Encounter, SummaryReport.encounter_id == Encounter.encounter_id
-    ).filter(
-        SummaryReport.status == ReportStatus.PENDING_REVIEW,
-        # My patients OR unassigned
-        (Encounter.doctor_id == current_doctor.user_id) | (Encounter.doctor_id == None)
-    ).scalar()
+        if not doctor_ids:
+            # No associated doctors, return zero stats
+            return {
+                "total_patients": 0,
+                "consultations": 0,
+                "pending_reports": 0,
+                "reviewed_reports": 0
+            }
 
-    # Get reports reviewed by this doctor
-    reviewed_reports = db.query(func.count(SummaryReport.report_id)).join(
-        Encounter, SummaryReport.encounter_id == Encounter.encounter_id
-    ).filter(
-        Encounter.doctor_id == current_doctor.user_id,
-        SummaryReport.status == ReportStatus.REVIEWED
-    ).scalar()
+        # Get unique patient count from encounters associated doctors have reviewed
+        total_patients = db.query(func.count(func.distinct(Encounter.patient_id))).join(
+            SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
+        ).filter(
+            Encounter.doctor_id.in_(doctor_ids),
+            SummaryReport.status == ReportStatus.REVIEWED
+        ).scalar()
+
+        # Get consultations (reviewed reports by associated doctors)
+        consultations = db.query(func.count(SummaryReport.report_id)).join(
+            Encounter, SummaryReport.encounter_id == Encounter.encounter_id
+        ).filter(
+            Encounter.doctor_id.in_(doctor_ids),
+            SummaryReport.status == ReportStatus.REVIEWED
+        ).scalar()
+
+        # Get pending reports count (associated doctors' patients + unassigned)
+        pending_reports = db.query(func.count(SummaryReport.report_id)).join(
+            Encounter, SummaryReport.encounter_id == Encounter.encounter_id
+        ).filter(
+            SummaryReport.status == ReportStatus.PENDING_REVIEW,
+            # Associated doctors' patients OR unassigned
+            (Encounter.doctor_id.in_(doctor_ids)) | (Encounter.doctor_id == None)
+        ).scalar()
+
+        # Get reports reviewed by associated doctors
+        reviewed_reports = db.query(func.count(SummaryReport.report_id)).join(
+            Encounter, SummaryReport.encounter_id == Encounter.encounter_id
+        ).filter(
+            Encounter.doctor_id.in_(doctor_ids),
+            SummaryReport.status == ReportStatus.REVIEWED
+        ).scalar()
+    else:
+        # Regular doctor - get their own stats
+        # Get unique patient count from encounters this doctor has reviewed
+        total_patients = db.query(func.count(func.distinct(Encounter.patient_id))).join(
+            SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
+        ).filter(
+            Encounter.doctor_id == current_doctor.user_id,
+            SummaryReport.status == ReportStatus.REVIEWED
+        ).scalar()
+
+        # Get consultations (reviewed reports by this doctor)
+        consultations = db.query(func.count(SummaryReport.report_id)).join(
+            Encounter, SummaryReport.encounter_id == Encounter.encounter_id
+        ).filter(
+            Encounter.doctor_id == current_doctor.user_id,
+            SummaryReport.status == ReportStatus.REVIEWED
+        ).scalar()
+
+        # Get pending reports count (my patients + unassigned)
+        pending_reports = db.query(func.count(SummaryReport.report_id)).join(
+            Encounter, SummaryReport.encounter_id == Encounter.encounter_id
+        ).filter(
+            SummaryReport.status == ReportStatus.PENDING_REVIEW,
+            # My patients OR unassigned
+            (Encounter.doctor_id == current_doctor.user_id) | (Encounter.doctor_id == None)
+        ).scalar()
+
+        # Get reports reviewed by this doctor
+        reviewed_reports = db.query(func.count(SummaryReport.report_id)).join(
+            Encounter, SummaryReport.encounter_id == Encounter.encounter_id
+        ).filter(
+            Encounter.doctor_id == current_doctor.user_id,
+            SummaryReport.status == ReportStatus.REVIEWED
+        ).scalar()
 
     return {
         "total_patients": total_patients,

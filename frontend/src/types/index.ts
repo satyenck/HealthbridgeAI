@@ -10,6 +10,7 @@
 export enum UserRole {
   PATIENT = 'PATIENT',
   DOCTOR = 'DOCTOR',
+  DOCTOR_ASSISTANT = 'DOCTOR_ASSISTANT',
   LAB = 'LAB',
   PHARMACY = 'PHARMACY',
   ADMIN = 'ADMIN',
@@ -102,8 +103,16 @@ export interface DoctorProfile {
   specialty?: string;
   degree?: string;
   last_degree_year?: number;
+  license_number?: string;
   created_at: string;
   updated_at?: string;
+  associated_doctors?: Array<{
+    user_id: string;
+    first_name: string;
+    last_name: string;
+    specialty?: string;
+    hospital_name?: string;
+  }>;
 }
 
 export interface LabProfile {

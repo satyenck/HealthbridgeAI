@@ -77,6 +77,19 @@ async def get_current_doctor(current_user: User = Depends(get_current_active_use
     return current_user
 
 
+async def get_current_doctor_or_assistant(current_user: User = Depends(get_current_active_user)) -> User:
+    """
+    Allows both DOCTOR and DOCTOR_ASSISTANT roles.
+    Use this for endpoints that assistants should access.
+    """
+    if current_user.role not in [UserRole.DOCTOR, UserRole.DOCTOR_ASSISTANT]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Doctor or Doctor Assistant access required"
+        )
+    return current_user
+
+
 async def get_current_patient(current_user: User = Depends(get_current_active_user)) -> User:
     if current_user.role != UserRole.PATIENT:
         raise HTTPException(

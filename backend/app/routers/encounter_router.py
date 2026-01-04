@@ -26,7 +26,7 @@ from app.schemas_v2 import (
     DoctorProfileResponse,
     LabOrderRequest, PrescriptionRequest
 )
-from app.auth import get_current_active_user, get_current_doctor, get_current_patient
+from app.auth import get_current_active_user, get_current_doctor, get_current_doctor_or_assistant, get_current_patient
 from app.services.gemini_service import gemini_service
 from app.services.file_service import FileService
 from app.services.encounter_service import encounter_service
@@ -967,12 +967,12 @@ async def analyze_encounter_vitals(
 async def extract_report_fields_from_voice(
     encounter_id: UUID,
     voice_request: VoiceTranscriptionRequest,
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
-    Extract structured report fields from doctor's voice recording.
-    Doctor speaks all updates, AI extracts which content belongs to which field.
+    Extract structured report fields from voice recording (Doctor or Assistant).
+    Doctor/Assistant speaks all updates, AI extracts which content belongs to which field.
     Returns structured data for review before saving.
     """
     # Verify encounter exists
@@ -1060,14 +1060,14 @@ async def start_voice_call(
 async def process_call_recording(
     encounter_id: UUID,
     voice_request: VoiceTranscriptionRequest,
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
-    Process recorded call audio:
+    Process recorded call audio (Doctor or Assistant):
     1. Transcribe entire conversation
     2. Extract medical information (symptoms, diagnosis, treatment, etc.)
-    3. Present to doctor for review
+    3. Present to doctor/assistant for review
 
     This endpoint does NOT update the encounter automatically.
     It returns extracted data for doctor review.
@@ -1224,13 +1224,13 @@ async def create_prescription_for_encounter(
 async def translate_summary_to_language(
     encounter_id: UUID,
     language_request: dict = Body(...),
-    current_doctor: User = Depends(get_current_doctor),
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
     db: Session = Depends(get_db)
 ):
     """
     Translate encounter summary report to specified language while keeping medical terms in English.
     Supported languages: en (English), gu (Gujarati), hi (Hindi)
-    Doctor only endpoint.
+    Available to doctors and assistants.
     """
     language = language_request.get("language", "en")
 

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.database import get_db
 from app.models_v2 import User, PatientProfile, UserRole
 from app.schemas_v2 import (
@@ -329,14 +330,20 @@ async def get_my_timeline(
 @router.get("/insights")
 async def get_health_insights(
     language: str = "English",
+    force_refresh: bool = False,
     current_patient: User = Depends(get_current_patient),
     db: Session = Depends(get_db)
 ):
     """
     Get personalized health insights for the patient based on their complete health data.
     Supports multiple languages (English, Gujarati) via query parameter.
+    Uses intelligent caching - only calls AI API when there's new data (vitals, labs, or reviewed reports).
+    Set force_refresh=true to bypass cache.
     """
-    from app.models_v2 import Encounter, SummaryReport, VitalsLog, LabOrder, Prescription
+    from app.models_v2 import (
+        Encounter, SummaryReport, VitalsLog, LabOrder, Prescription,
+        LabResultsLog, HealthInsightsCache
+    )
     from datetime import datetime, timedelta
 
     # Get patient profile
@@ -349,6 +356,56 @@ async def get_health_insights(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Patient profile not found"
         )
+
+    # ===== INTELLIGENT CACHING LOGIC =====
+    # Check for cached insights
+    cached_insights = db.query(HealthInsightsCache).filter(
+        HealthInsightsCache.patient_id == current_patient.user_id
+    ).first()
+
+    # Get latest timestamps for new data
+    latest_vital_time = db.query(func.max(VitalsLog.recorded_at)).join(
+        Encounter, VitalsLog.encounter_id == Encounter.encounter_id
+    ).filter(Encounter.patient_id == current_patient.user_id).scalar()
+
+    latest_lab_time = db.query(func.max(LabResultsLog.recorded_at)).join(
+        Encounter, LabResultsLog.encounter_id == Encounter.encounter_id
+    ).filter(Encounter.patient_id == current_patient.user_id).scalar()
+
+    latest_reviewed_report_time = db.query(func.max(SummaryReport.updated_at)).join(
+        Encounter, SummaryReport.encounter_id == Encounter.encounter_id
+    ).filter(
+        Encounter.patient_id == current_patient.user_id,
+        SummaryReport.status == 'REVIEWED'
+    ).scalar()
+
+    # Determine if we need to regenerate insights
+    needs_regeneration = force_refresh or not cached_insights or cached_insights.language != language
+
+    if cached_insights and not force_refresh and cached_insights.language == language:
+        # Check if there's new data since last generation
+        has_new_vitals = latest_vital_time and (
+            not cached_insights.last_vitals_timestamp or
+            latest_vital_time > cached_insights.last_vitals_timestamp
+        )
+        has_new_labs = latest_lab_time and (
+            not cached_insights.last_lab_result_timestamp or
+            latest_lab_time > cached_insights.last_lab_result_timestamp
+        )
+        has_new_reports = latest_reviewed_report_time and (
+            not cached_insights.last_reviewed_report_timestamp or
+            latest_reviewed_report_time > cached_insights.last_reviewed_report_timestamp
+        )
+
+        needs_regeneration = has_new_vitals or has_new_labs or has_new_reports
+
+    # If cached data is fresh, return it immediately (no AI API call)
+    if not needs_regeneration and cached_insights:
+        print(f"[INSIGHTS CACHE HIT] Returning cached insights for patient {current_patient.user_id}")
+        return cached_insights.insights_data
+
+    print(f"[INSIGHTS CACHE MISS] Generating new insights for patient {current_patient.user_id}")
+    # ===== END CACHING LOGIC =====
 
     # Get recent encounters (last 30 days)
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
@@ -461,8 +518,36 @@ async def get_health_insights(
             'prescribed_at': prescription.created_at.isoformat()
         })
 
-    return {
+    # Prepare response data
+    response_data = {
         'ai_insights': ai_insights,
         'pending_labs': pending_labs_data,
         'pending_prescriptions': pending_prescriptions_data
     }
+
+    # ===== SAVE TO CACHE =====
+    if cached_insights:
+        # Update existing cache
+        cached_insights.insights_data = response_data
+        cached_insights.language = language
+        cached_insights.last_generated_at = datetime.utcnow()
+        cached_insights.last_vitals_timestamp = latest_vital_time
+        cached_insights.last_lab_result_timestamp = latest_lab_time
+        cached_insights.last_reviewed_report_timestamp = latest_reviewed_report_time
+    else:
+        # Create new cache entry
+        new_cache = HealthInsightsCache(
+            patient_id=current_patient.user_id,
+            insights_data=response_data,
+            language=language,
+            last_vitals_timestamp=latest_vital_time,
+            last_lab_result_timestamp=latest_lab_time,
+            last_reviewed_report_timestamp=latest_reviewed_report_time
+        )
+        db.add(new_cache)
+
+    db.commit()
+    print(f"[INSIGHTS CACHE] Saved new insights for patient {current_patient.user_id}")
+    # ===== END SAVE TO CACHE =====
+
+    return response_data

@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import api from './api';
 import './App.css';
+import { DoctorDashboard } from './components/DoctorDashboard';
+import { PendingReports } from './components/PendingReports';
+import { ReviewedReports } from './components/ReviewedReports';
+import { PatientsList } from './components/PatientsList';
+import { PatientDetail } from './components/PatientDetail';
+import { ReportEdit } from './components/ReportEdit';
 
 // Login Component
 function Login() {
@@ -37,7 +43,16 @@ function Login() {
         id_token: response.credential,
       });
       localStorage.setItem('access_token', result.data.access_token);
-      navigate('/home');
+
+      // Check user role and redirect accordingly
+      const userResponse = await api.get('/api/auth/me');
+      const userRole = userResponse.data.role;
+
+      if (userRole === 'DOCTOR' || userRole === 'DOCTOR_ASSISTANT') {
+        navigate('/doctor-dashboard');
+      } else {
+        navigate('/home');
+      }
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Google authentication failed. Make sure Google OAuth is configured in the backend.');
     } finally {
@@ -74,7 +89,16 @@ function Login() {
         verification_code: verificationCode,
       });
       localStorage.setItem('access_token', response.data.access_token);
-      navigate('/home');
+
+      // Check user role and redirect accordingly
+      const userResponse = await api.get('/api/auth/me');
+      const userRole = userResponse.data.role;
+
+      if (userRole === 'DOCTOR' || userRole === 'DOCTOR_ASSISTANT') {
+        navigate('/doctor-dashboard');
+      } else {
+        navigate('/home');
+      }
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Invalid code');
     } finally {
@@ -83,9 +107,14 @@ function Login() {
   };
 
   return (
-    <div className="container">
+    <div className="login-container">
       <div className="card">
-        <h1>🏥 HealthbridgeAI</h1>
+        <div className="logo-container">
+          <div className="logo-icon">
+            <span className="heart-icon">❤️</span>
+          </div>
+          <h1 className="logo-text">HealthbridgeAI</h1>
+        </div>
         <p className="subtitle">Your AI Health Companion</p>
 
         <div className="form">
@@ -142,9 +171,9 @@ function Home() {
 
   const loadData = async () => {
     try {
-      const [profileRes, consultationsRes] = await Promise.all([
+      const [profileRes, timelineRes] = await Promise.all([
         api.get('/api/profile').catch(() => null),
-        api.get('/api/consultations').catch(() => ({ data: [] })),
+        api.get('/api/profile/timeline').catch(() => ({ data: { encounters: [] } })),
       ]);
 
       if (profileRes) {
@@ -152,7 +181,7 @@ function Home() {
       } else {
         navigate('/profile');
       }
-      setConsultations(consultationsRes.data);
+      setConsultations(timelineRes.data.encounters || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -172,7 +201,12 @@ function Home() {
   return (
     <div className="container">
       <div className="header">
-        <h1>🏥 HealthbridgeAI</h1>
+        <div className="logo-container-header">
+          <div className="logo-icon-header">
+            <span className="heart-icon-header">❤️</span>
+          </div>
+          <h1 className="logo-text-header">HealthbridgeAI</h1>
+        </div>
         <button onClick={handleLogout} className="logout-btn">Logout</button>
       </div>
 
@@ -195,14 +229,18 @@ function Home() {
           <p className="empty">No consultations yet. Start your first consultation!</p>
         ) : (
           <div className="consultation-list">
-            {consultations.map((consultation) => (
+            {consultations.map((encounter) => (
               <div
-                key={consultation.id}
+                key={encounter.encounter_id}
                 className="consultation-item"
-                onClick={() => navigate(`/consultation/${consultation.id}`)}
+                onClick={() => navigate(`/consultation/${encounter.encounter_id}`)}
               >
-                <div className="date">{new Date(consultation.created_at).toLocaleDateString()}</div>
-                <div className="description">{consultation.patient_description}</div>
+                <div className="date">{new Date(encounter.created_at).toLocaleDateString()}</div>
+                <div className="description">
+                  {encounter.encounter_type === 'HEALTH_ASSISTANT' ? 'Health Assistant Chat' :
+                   encounter.encounter_type === 'VITALS_REPORT' ? 'Vitals Report' :
+                   encounter.patient_symptoms || 'Consultation'}
+                </div>
               </div>
             ))}
           </div>
@@ -332,8 +370,15 @@ function NewConsultation() {
   return (
     <div className="container">
       <div className="header">
-        <button onClick={() => navigate('/home')} className="back-btn">← Back</button>
-        <h1>New Consultation</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button onClick={() => navigate('/home')} className="back-btn">← Back</button>
+          <div className="logo-container-header">
+            <div className="logo-icon-header">
+              <span className="heart-icon-header">❤️</span>
+            </div>
+            <h1 className="logo-text-header">HealthbridgeAI</h1>
+          </div>
+        </div>
       </div>
 
       <div className="card info-card">
@@ -402,8 +447,15 @@ function ConsultationDetail() {
   return (
     <div className="container">
       <div className="header">
-        <button onClick={() => navigate('/home')} className="back-btn">← Back</button>
-        <h1>Consultation Report</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button onClick={() => navigate('/home')} className="back-btn">← Back</button>
+          <div className="logo-container-header">
+            <div className="logo-icon-header">
+              <span className="heart-icon-header">❤️</span>
+            </div>
+            <h1 className="logo-text-header">HealthbridgeAI</h1>
+          </div>
+        </div>
       </div>
 
       <div className="date">{new Date(consultation.created_at).toLocaleString()}</div>
@@ -468,6 +520,16 @@ function App() {
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/consultation" element={<ProtectedRoute><NewConsultation /></ProtectedRoute>} />
         <Route path="/consultation/:id" element={<ProtectedRoute><ConsultationDetail /></ProtectedRoute>} />
+
+        {/* Doctor Routes */}
+        <Route path="/doctor-dashboard" element={<ProtectedRoute><DoctorDashboard /></ProtectedRoute>} />
+        <Route path="/doctor/reports/pending" element={<ProtectedRoute><PendingReports /></ProtectedRoute>} />
+        <Route path="/doctor/reports/reviewed" element={<ProtectedRoute><ReviewedReports /></ProtectedRoute>} />
+        <Route path="/doctor/patients" element={<ProtectedRoute><PatientsList /></ProtectedRoute>} />
+        <Route path="/doctor/search" element={<ProtectedRoute><PatientsList /></ProtectedRoute>} />
+        <Route path="/doctor/patient/:patientId" element={<ProtectedRoute><PatientDetail /></ProtectedRoute>} />
+        <Route path="/doctor/report/:reportId" element={<ProtectedRoute><ReportEdit /></ProtectedRoute>} />
+
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>

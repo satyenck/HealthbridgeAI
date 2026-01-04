@@ -1,6 +1,16 @@
+import { Platform } from 'react-native';
+
+// Android emulator needs 10.0.2.2 to access host machine's localhost
+const getDevBaseUrl = () => {
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:8000';
+  }
+  return 'http://localhost:8000';
+};
+
 export const API_CONFIG = {
   BASE_URL: __DEV__
-    ? 'http://localhost:8000'
+    ? getDevBaseUrl()
     : 'https://your-production-api.com',
   TIMEOUT: 90000, // 90 seconds for AI/translation operations
 };
@@ -111,4 +121,6 @@ export const API_ENDPOINTS = {
   // HEALTH ASSISTANT
   // ============================================================================
   HEALTH_ASSISTANT_INTERVIEW: '/api/health-assistant/interview',
+  HEALTH_ASSISTANT_REPORT_VITALS: '/api/health-assistant/report-vitals',
+  BULK_VITALS_RECORD: '/api/health-assistant/bulk-vitals-record',
 };

@@ -3,32 +3,31 @@ import {View, Text} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
-// Patient screens
-import {HomeScreen} from '../screens/patient/HomeScreen';
-import {TimelineScreen} from '../screens/patient/TimelineScreen';
-import {ProfileScreen} from '../screens/patient/ProfileScreen';
-import {InsightsScreen} from '../screens/patient/InsightsScreen';
-import {NewEncounterScreen} from '../screens/patient/NewEncounterScreen';
-import {EncounterDetailScreen} from '../screens/patient/EncounterDetailScreen';
-import {VoiceRecordScreen} from '../screens/patient/VoiceRecordScreen';
-import {MediaUploadScreen} from '../screens/patient/MediaUploadScreen';
-import {VitalsEntryScreen} from '../screens/patient/VitalsEntryScreen';
-import {VitalsReportScreen} from '../screens/patient/VitalsReportScreen';
-import {HealthAssistantScreen} from '../screens/patient/HealthAssistantScreen';
-import {VitalsChartScreen} from '../screens/patient/VitalsChartScreen';
+// Import actual doctor screens
+import {DashboardScreen} from '../screens/doctor/DashboardScreen';
+import {PendingReportsScreen} from '../screens/doctor/PendingReportsScreen';
+import {ReviewedReportsScreen} from '../screens/doctor/ReviewedReportsScreen';
+import {SearchPatientsScreen} from '../screens/doctor/SearchPatientsScreen';
+import {MyPatientsScreen} from '../screens/doctor/MyPatientsScreen';
+import {PatientTimelineScreen} from '../screens/doctor/PatientTimelineScreen';
+import {ReviewReportScreen} from '../screens/doctor/ReviewReportScreen';
+import {DoctorProfileScreen} from '../screens/doctor/DoctorProfileScreen';
+import {VoiceCallScreen} from '../screens/VoiceCallScreen';
+import {CallReviewScreen} from '../screens/doctor/CallReviewScreen';
+import {DoctorConsultationReviewScreen} from '../screens/doctor/DoctorConsultationReviewScreen';
+import {BulkVitalsRecordScreen} from '../screens/doctor/BulkVitalsRecordScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Home stack with encounter-related screens
-const HomeStack = () => {
+// Dashboard stack
+const DashboardStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="HomeMain"
-        component={HomeScreen}
+        name="DashboardMain"
+        component={DashboardScreen}
         options={{
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -51,38 +50,18 @@ const HomeStack = () => {
         }}
       />
       <Stack.Screen
-        name="HealthAssistant"
-        component={HealthAssistantScreen}
+        name="VoiceCall"
+        component={VoiceCallScreen}
         options={{headerShown: false}}
       />
       <Stack.Screen
-        name="NewEncounter"
-        component={NewEncounterScreen}
-        options={{title: 'New Consultation'}}
+        name="CallReview"
+        component={CallReviewScreen}
+        options={{headerShown: false}}
       />
       <Stack.Screen
-        name="EncounterDetail"
-        component={EncounterDetailScreen}
-        options={{title: 'Consultation'}}
-      />
-      <Stack.Screen
-        name="VoiceRecord"
-        component={VoiceRecordScreen}
-        options={{title: 'Voice Recording'}}
-      />
-      <Stack.Screen
-        name="MediaUpload"
-        component={MediaUploadScreen}
-        options={{title: 'Upload Files'}}
-      />
-      <Stack.Screen
-        name="VitalsEntry"
-        component={VitalsEntryScreen}
-        options={{title: 'Enter Vitals'}}
-      />
-      <Stack.Screen
-        name="VitalsReport"
-        component={VitalsReportScreen}
+        name="BulkVitalsRecord"
+        component={BulkVitalsRecordScreen}
         options={{
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -108,13 +87,13 @@ const HomeStack = () => {
   );
 };
 
-// Timeline stack
-const TimelineStack = () => {
+// Pending reports stack
+const ReportsStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="TimelineMain"
-        component={TimelineScreen}
+        name="PendingReportsMain"
+        component={PendingReportsScreen}
         options={{
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -137,21 +116,36 @@ const TimelineStack = () => {
         }}
       />
       <Stack.Screen
-        name="EncounterDetail"
-        component={EncounterDetailScreen}
-        options={{title: 'Consultation'}}
+        name="ReviewedReports"
+        component={ReviewedReportsScreen}
+        options={{title: 'Reviewed Reports'}}
+      />
+      <Stack.Screen
+        name="ReviewReport"
+        component={ReviewReportScreen}
+        options={{title: 'Review Report'}}
+      />
+      <Stack.Screen
+        name="VoiceCall"
+        component={VoiceCallScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="CallReview"
+        component={CallReviewScreen}
+        options={{headerShown: false}}
       />
     </Stack.Navigator>
   );
 };
 
-// Insights stack
-const InsightsStack = () => {
+// Search patients stack
+const SearchStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="InsightsMain"
-        component={InsightsScreen}
+        name="SearchPatientsMain"
+        component={SearchPatientsScreen}
         options={{
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -174,8 +168,41 @@ const InsightsStack = () => {
         }}
       />
       <Stack.Screen
-        name="VitalsChart"
-        component={VitalsChartScreen}
+        name="PatientTimeline"
+        component={PatientTimelineScreen}
+        options={{title: 'Patient Timeline'}}
+      />
+      <Stack.Screen
+        name="ReviewReport"
+        component={ReviewReportScreen}
+        options={{title: 'Review Report'}}
+      />
+      <Stack.Screen
+        name="VoiceCall"
+        component={VoiceCallScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="CallReview"
+        component={CallReviewScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="DoctorConsultationReview"
+        component={DoctorConsultationReviewScreen}
+        options={{headerShown: false}}
+      />
+    </Stack.Navigator>
+  );
+};
+
+// My patients stack
+const PatientsStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="MyPatientsMain"
+        component={MyPatientsScreen}
         options={{
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -196,6 +223,31 @@ const InsightsStack = () => {
             </View>
           ),
         }}
+      />
+      <Stack.Screen
+        name="PatientTimeline"
+        component={PatientTimelineScreen}
+        options={{title: 'Patient Timeline'}}
+      />
+      <Stack.Screen
+        name="ReviewReport"
+        component={ReviewReportScreen}
+        options={{title: 'Review Report'}}
+      />
+      <Stack.Screen
+        name="VoiceCall"
+        component={VoiceCallScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="CallReview"
+        component={CallReviewScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="DoctorConsultationReview"
+        component={DoctorConsultationReviewScreen}
+        options={{headerShown: false}}
       />
     </Stack.Navigator>
   );
@@ -206,8 +258,8 @@ const ProfileStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="ProfileMain"
-        component={ProfileScreen}
+        name="DoctorProfileMain"
+        component={DoctorProfileScreen}
         options={{
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -233,50 +285,51 @@ const ProfileStack = () => {
   );
 };
 
-export const PatientNavigator = () => {
+export const DoctorAssistantNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2196F3',
+        tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: '#666',
-        tabBarStyle: {
-          height: 70,
-          paddingBottom: 10,
-          paddingTop: 10,
-        },
-        tabBarLabelStyle: {
-          fontSize: 13,
-          fontWeight: '600',
-        },
       }}>
       <Tab.Screen
-        name="Home"
-        component={HomeStack}
+        name="Dashboard"
+        component={DashboardStack}
         options={{
-          tabBarLabel: 'Consult',
-          tabBarIcon: ({color}) => (
-            <Icon name="local-hospital" size={28} color={color} />
+          tabBarLabel: 'Dashboard',
+          tabBarIcon: ({color, size}) => (
+            <Icon name="dashboard" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Timeline"
-        component={TimelineStack}
+        name="Reports"
+        component={ReportsStack}
         options={{
-          tabBarLabel: 'History',
-          tabBarIcon: ({color}) => (
-            <Icon name="event-note" size={28} color={color} />
+          tabBarLabel: 'Reports',
+          tabBarIcon: ({color, size}) => (
+            <Icon name="assignment" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Insights"
-        component={InsightsStack}
+        name="Search"
+        component={SearchStack}
         options={{
-          tabBarLabel: 'Insights',
-          tabBarIcon: ({color}) => (
-            <Icon name="analytics" size={28} color={color} />
+          tabBarLabel: 'Search',
+          tabBarIcon: ({color, size}) => (
+            <Icon name="search" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Patients"
+        component={PatientsStack}
+        options={{
+          tabBarLabel: 'Patients',
+          tabBarIcon: ({color, size}) => (
+            <Icon name="people" size={size} color={color} />
           ),
         }}
       />
@@ -285,8 +338,8 @@ export const PatientNavigator = () => {
         component={ProfileStack}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({color}) => (
-            <Icon name="account-circle" size={28} color={color} />
+          tabBarIcon: ({color, size}) => (
+            <Icon name="account-circle" size={size} color={color} />
           ),
         }}
       />

@@ -21,7 +21,7 @@ import FileViewer from 'react-native-file-viewer';
 import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {encounterService} from '../../services/encounterService';
-import {SummaryReport, ReportStatus, Priority, SummaryReportContent, ComprehensiveEncounter, MediaFile} from '../../types';
+import {SummaryReport, ReportStatus, Priority, SummaryReportContent, ComprehensiveEncounter, MediaFile, UserRole} from '../../types';
 import {API_CONFIG, API_ENDPOINTS} from '../../config/api';
 import {SendToLabModal} from '../../components/SendToLabModal';
 import {SendToPharmacyModal} from '../../components/SendToPharmacyModal';
@@ -34,6 +34,7 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   // Form state
   const [symptoms, setSymptoms] = useState('');
@@ -52,9 +53,21 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
 
   useFocusEffect(
     useCallback(() => {
+      loadUserRole();
       loadReport();
     }, [encounterId]),
   );
+
+  const loadUserRole = async () => {
+    try {
+      const role = await AsyncStorage.getItem('user_role');
+      if (role) {
+        setUserRole(role as UserRole);
+      }
+    } catch (error) {
+      console.error('Error loading user role:', error);
+    }
+  };
 
   const loadReport = async () => {
     try {
@@ -284,7 +297,7 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>Review Report</Text>
-        {!editing && (
+        {!editing && userRole === UserRole.DOCTOR && (
           <View style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
             {/* Language Translation Buttons */}
             {translating ? (
@@ -315,7 +328,7 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
               </>
             )}
 
-            {/* Action Buttons */}
+            {/* Action Buttons - Only for DOCTOR */}
             <TouchableOpacity onPress={() => setShowVoiceModal(true)} disabled={translating}>
               <Icon name="mic" size={32} color="#fff" />
             </TouchableOpacity>
@@ -545,7 +558,7 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
         </View>
       </Modal>
 
-      {editing && (
+      {editing && userRole === UserRole.DOCTOR && (
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.saveButton}

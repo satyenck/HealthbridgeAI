@@ -61,103 +61,80 @@ export const DashboardScreen = ({navigation}: any) => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }>
-        {/* Stats Cards */}
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, {backgroundColor: '#E3F2FD'}]}>
-            <Icon name="people" size={32} color="#2196F3" />
-            <Text style={styles.statValue}>{stats?.total_patients || 0}</Text>
-            <Text style={styles.statLabel}>My Patients</Text>
-          </View>
-
-          <View style={[styles.statCard, {backgroundColor: '#FFF3E0'}]}>
-            <Icon name="assignment-late" size={32} color="#FF9800" />
-            <Text style={styles.statValue}>{stats?.pending_reports || 0}</Text>
-            <Text style={styles.statLabel}>Pending Reports</Text>
-          </View>
-
-          <View style={[styles.statCard, {backgroundColor: '#E8F5E9'}]}>
-            <Icon name="assignment-turned-in" size={32} color="#4CAF50" />
-            <Text style={styles.statValue}>{stats?.reviewed_reports || 0}</Text>
-            <Text style={styles.statLabel}>Reviewed</Text>
-          </View>
-
-          <View style={[styles.statCard, {backgroundColor: '#F3E5F5'}]}>
-            <Icon name="description" size={32} color="#9C27B0" />
-            <Text style={styles.statValue}>{stats?.consultations || 0}</Text>
-            <Text style={styles.statLabel}>Consultations</Text>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
         <View style={styles.actionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, {backgroundColor: '#E3F2FD'}]}
             onPress={() => navigation.navigate('Patients')}>
-            <View style={styles.actionContent}>
-              <View style={styles.actionIconContainer}>
-                <Icon name="people" size={32} color="#2196F3" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>My Patients</Text>
-                <Text style={styles.actionSubtitle}>
-                  {stats?.total_patients || 0} patients you've reviewed
-                </Text>
-              </View>
+            <View style={styles.actionIconContainer}>
+              <Icon name="people" size={48} color="#1976D2" />
             </View>
-            <Icon name="chevron-right" size={24} color="#999" />
+            <View style={styles.actionInfo}>
+              <Text style={[styles.actionTitle, {color: '#1565C0'}]}>My Patients</Text>
+              <Text style={[styles.actionSubtitle, {color: '#1976D2'}]}>
+                {stats?.total_patients || 0} {stats?.total_patients === 1 ? 'Patient' : 'Patients'}
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={24} color="#1976D2" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, {backgroundColor: '#FFF3E0'}]}
             onPress={() => navigation.navigate('Reports')}>
-            <View style={styles.actionContent}>
-              <View style={styles.actionIconContainer}>
-                <Icon name="assignment-late" size={32} color="#FF9800" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Pending Reports</Text>
-                <Text style={styles.actionSubtitle}>
-                  {stats?.pending_reports || 0} reports awaiting review
-                </Text>
-              </View>
+            <View style={styles.actionIconContainer}>
+              <Icon name="assignment-late" size={48} color="#EF6C00" />
             </View>
-            <Icon name="chevron-right" size={24} color="#999" />
+            <View style={styles.actionInfo}>
+              <Text style={[styles.actionTitle, {color: '#E65100'}]}>Pending Reports</Text>
+              <Text style={[styles.actionSubtitle, {color: '#EF6C00'}]}>
+                {stats?.pending_reports || 0} {stats?.pending_reports === 1 ? 'Report' : 'Reports'} awaiting review
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={24} color="#EF6C00" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, {backgroundColor: '#E8F5E9'}]}
             onPress={() => navigation.navigate('Reports', {screen: 'ReviewedReports'})}>
-            <View style={styles.actionContent}>
-              <View style={styles.actionIconContainer}>
-                <Icon name="assignment-turned-in" size={32} color="#4CAF50" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Reviewed Reports</Text>
-                <Text style={styles.actionSubtitle}>
-                  {stats?.reviewed_reports || 0} reports you've reviewed
-                </Text>
-              </View>
+            <View style={styles.actionIconContainer}>
+              <Icon name="assignment-turned-in" size={48} color="#388E3C" />
             </View>
-            <Icon name="chevron-right" size={24} color="#999" />
+            <View style={styles.actionInfo}>
+              <Text style={[styles.actionTitle, {color: '#2E7D32'}]}>Reviewed Reports</Text>
+              <Text style={[styles.actionSubtitle, {color: '#388E3C'}]}>
+                {stats?.reviewed_reports || 0} {stats?.reviewed_reports === 1 ? 'Report' : 'Reports'}
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={24} color="#388E3C" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, {backgroundColor: '#F3E5F5'}]}
             onPress={() => navigation.navigate('Search')}>
-            <View style={styles.actionContent}>
-              <View style={styles.actionIconContainer}>
-                <Icon name="search" size={32} color="#9C27B0" />
-              </View>
-              <View style={styles.actionInfo}>
-                <Text style={styles.actionTitle}>Search Patients</Text>
-                <Text style={styles.actionSubtitle}>
-                  Find and view any patient records
-                </Text>
-              </View>
+            <View style={styles.actionIconContainer}>
+              <Icon name="search" size={48} color="#7B1FA2" />
             </View>
-            <Icon name="chevron-right" size={24} color="#999" />
+            <View style={styles.actionInfo}>
+              <Text style={[styles.actionTitle, {color: '#6A1B9A'}]}>Search Patients</Text>
+              <Text style={[styles.actionSubtitle, {color: '#7B1FA2'}]}>
+                Find and view any patient records
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={24} color="#7B1FA2" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, {backgroundColor: '#E1F5FE'}]}
+            onPress={() => navigation.navigate('BulkVitalsRecord')}>
+            <View style={styles.actionIconContainer}>
+              <Icon name="mic" size={48} color="#0277BD" />
+            </View>
+            <View style={styles.actionInfo}>
+              <Text style={[styles.actionTitle, {color: '#01579B'}]}>Record Patient Vitals</Text>
+              <Text style={[styles.actionSubtitle, {color: '#0277BD'}]}>
+                Voice record vitals for multiple patients
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={24} color="#0277BD" />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -177,8 +154,9 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    padding: 16,
-    paddingTop: 48,
+    padding: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
@@ -187,68 +165,27 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#333',
   },
   content: {
     flex: 1,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    gap: 12,
-  },
-  statCard: {
-    width: '48%',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statValue: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 12,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-    textAlign: 'center',
-  },
   actionsSection: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 16,
+    padding: 20,
+    gap: 16,
   },
   actionButton: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    padding: 20,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  actionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+    minHeight: 100,
   },
   actionIconContainer: {
     marginRight: 16,
@@ -257,13 +194,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   actionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 18,
+    fontWeight: '700',
     marginBottom: 4,
   },
   actionSubtitle: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 14,
+    opacity: 0.9,
   },
 });

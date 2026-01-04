@@ -1,6 +1,7 @@
-import DocumentPicker, {
-  DocumentPickerResponse,
-} from 'react-native-document-picker';
+// TEMPORARILY DISABLED: react-native-document-picker not compatible with RN 0.83
+// import DocumentPicker, {
+//   DocumentPickerResponse,
+// } from 'react-native-document-picker';
 import {launchImageLibrary, launchCamera, Asset} from 'react-native-image-picker';
 import {Platform, PermissionsAndroid} from 'react-native';
 
@@ -43,32 +44,34 @@ export const mediaService = {
 
   /**
    * Pick a PDF document
+   * TEMPORARILY DISABLED: react-native-document-picker not compatible with RN 0.83
    */
   async pickDocument(): Promise<MediaFile | null> {
-    try {
-      const result = await DocumentPicker.pick({
-        type: [DocumentPicker.types.pdf],
-      });
+    throw new Error('PDF picker temporarily unavailable. Please use images or videos instead.');
+    // try {
+    //   const result = await DocumentPicker.pick({
+    //     type: [DocumentPicker.types.pdf],
+    //   });
 
-      const file = result[0];
+    //   const file = result[0];
 
-      // Validate file size
-      if (file.size && file.size > MAX_PDF_SIZE) {
-        throw new Error(`PDF size exceeds maximum of ${MAX_PDF_SIZE / 1024 / 1024}MB`);
-      }
+    //   // Validate file size
+    //   if (file.size && file.size > MAX_PDF_SIZE) {
+    //     throw new Error(`PDF size exceeds maximum of ${MAX_PDF_SIZE / 1024 / 1024}MB`);
+    //   }
 
-      return {
-        uri: file.uri,
-        type: file.type || 'application/pdf',
-        name: file.name || 'document.pdf',
-        size: file.size || 0,
-      };
-    } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        return null; // User cancelled
-      }
-      throw err;
-    }
+    //   return {
+    //     uri: file.uri,
+    //     type: file.type || 'application/pdf',
+    //     name: file.name || 'document.pdf',
+    //     size: file.size || 0,
+    //   };
+    // } catch (err) {
+    //   if (DocumentPicker.isCancel(err)) {
+    //     return null; // User cancelled
+    //   }
+    //   throw err;
+    // }
   },
 
   /**

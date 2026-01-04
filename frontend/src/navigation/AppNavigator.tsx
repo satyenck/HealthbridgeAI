@@ -12,6 +12,7 @@ import {ProfileCreateScreen} from '../screens/ProfileCreateScreen';
 // Role-based navigators
 import {PatientNavigator} from './PatientNavigator';
 import {DoctorNavigator} from './DoctorNavigator';
+import {DoctorAssistantNavigator} from './DoctorAssistantNavigator';
 import {LabNavigator} from './LabNavigator';
 import {PharmacyNavigator} from './PharmacyNavigator';
 import {AdminNavigator} from './AdminNavigator';
@@ -34,6 +35,7 @@ export const AppNavigator = () => {
 
       if (authenticated) {
         const role = await authService.getUserRole();
+        console.log('[AppNavigator] User role from storage:', role);
         setUserRole(role);
       }
     } catch (error) {
@@ -57,22 +59,33 @@ export const AppNavigator = () => {
   // Route based on authentication and role
   const getInitialRoute = () => {
     if (!isAuthenticated) {
+      console.log('[AppNavigator] Not authenticated, routing to Login');
       return 'Login';
     }
 
     // Route based on user role
+    console.log('[AppNavigator] Routing for role:', userRole);
     switch (userRole) {
       case UserRole.PATIENT:
+        console.log('[AppNavigator] → PatientApp');
         return 'PatientApp';
       case UserRole.DOCTOR:
+        console.log('[AppNavigator] → DoctorApp');
         return 'DoctorApp';
+      case UserRole.DOCTOR_ASSISTANT:
+        console.log('[AppNavigator] → DoctorAssistantApp');
+        return 'DoctorAssistantApp';
       case UserRole.LAB:
+        console.log('[AppNavigator] → LabApp');
         return 'LabApp';
       case UserRole.PHARMACY:
+        console.log('[AppNavigator] → PharmacyApp');
         return 'PharmacyApp';
       case UserRole.ADMIN:
+        console.log('[AppNavigator] → AdminApp');
         return 'AdminApp';
       default:
+        console.log('[AppNavigator] → Login (unknown role)');
         return 'Login';
     }
   };
@@ -95,6 +108,7 @@ export const AppNavigator = () => {
         {/* Role-based app navigators */}
         <Stack.Screen name="PatientApp" component={PatientNavigator} />
         <Stack.Screen name="DoctorApp" component={DoctorNavigator} />
+        <Stack.Screen name="DoctorAssistantApp" component={DoctorAssistantNavigator} />
         <Stack.Screen name="LabApp" component={LabNavigator} />
         <Stack.Screen name="PharmacyApp" component={PharmacyNavigator} />
         <Stack.Screen name="AdminApp" component={AdminNavigator} />

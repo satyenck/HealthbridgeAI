@@ -13,7 +13,6 @@ import apiService from '../../services/apiService';
 import {API_ENDPOINTS} from '../../config/api';
 import {PatientTimeline} from '../../types';
 import {TimelineItem} from '../../components/TimelineItem';
-import {VitalsChart} from '../../components/VitalsChart';
 
 export const TimelineScreen = ({navigation}: any) => {
   const [timeline, setTimeline] = useState<PatientTimeline | null>(null);
@@ -60,17 +59,10 @@ export const TimelineScreen = ({navigation}: any) => {
     );
   }
 
-  const hasVitalsTrend = timeline?.vitals_trend && timeline.vitals_trend.timestamps.length > 0;
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Health Timeline</Text>
-        {timeline && (
-          <Text style={styles.subtitle}>
-            {timeline.patient.first_name} {timeline.patient.last_name}
-          </Text>
-        )}
+        <Text style={styles.pageTitle}>Consultation History</Text>
       </View>
 
       <ScrollView
@@ -78,56 +70,8 @@ export const TimelineScreen = ({navigation}: any) => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }>
-        {/* Vitals Trends */}
-        {hasVitalsTrend && (
-          <View style={styles.chartsSection}>
-            <Text style={styles.sectionTitle}>Vitals Trends</Text>
-
-            <VitalsChart
-              title="Blood Pressure"
-              data={timeline.vitals_trend!.blood_pressure_sys}
-              timestamps={timeline.vitals_trend!.timestamps}
-              color="#F44336"
-              unit="mmHg"
-            />
-
-            <VitalsChart
-              title="Heart Rate"
-              data={timeline.vitals_trend!.heart_rate}
-              timestamps={timeline.vitals_trend!.timestamps}
-              color="#E91E63"
-              unit="bpm"
-            />
-
-            <VitalsChart
-              title="Oxygen Level"
-              data={timeline.vitals_trend!.oxygen_level}
-              timestamps={timeline.vitals_trend!.timestamps}
-              color="#2196F3"
-              unit="%"
-            />
-
-            <VitalsChart
-              title="Temperature"
-              data={timeline.vitals_trend!.temperature}
-              timestamps={timeline.vitals_trend!.timestamps}
-              color="#FF9800"
-              unit="°C"
-            />
-
-            <VitalsChart
-              title="Weight"
-              data={timeline.vitals_trend!.weight}
-              timestamps={timeline.vitals_trend!.timestamps}
-              color="#4CAF50"
-              unit="kg"
-            />
-          </View>
-        )}
-
         {/* Consultations Timeline */}
         <View style={styles.timelineSection}>
-          <Text style={styles.sectionTitle}>Consultation History</Text>
           {timeline && timeline.encounters.length > 0 ? (
             timeline.encounters.map((encounter, index) => (
               <TimelineItem
@@ -160,39 +104,25 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    padding: 16,
-    paddingTop: 48,
+    padding: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  title: {
+  pageTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#333',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
   },
   content: {
     flex: 1,
   },
-  chartsSection: {
-    padding: 16,
-    paddingBottom: 0,
-  },
   timelineSection: {
     padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 16,
   },
   emptyState: {
     alignItems: 'center',

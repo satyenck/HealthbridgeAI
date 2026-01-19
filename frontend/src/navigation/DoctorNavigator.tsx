@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text} from 'react-native';
+import {View, Text, Platform} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -16,18 +16,33 @@ import {DoctorProfileScreen} from '../screens/doctor/DoctorProfileScreen';
 import {VoiceCallScreen} from '../screens/VoiceCallScreen';
 import {CallReviewScreen} from '../screens/doctor/CallReviewScreen';
 import {DoctorConsultationReviewScreen} from '../screens/doctor/DoctorConsultationReviewScreen';
+import {BulkVitalsRecordScreen} from '../screens/doctor/BulkVitalsRecordScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 // Dashboard stack
-const DashboardStack = () => {
+const DashboardStack = ({navigation}: any) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#2196F3"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('DashboardMain')}
+          />
+        ) : undefined,
+      }}
+    >
       <Stack.Screen
         name="DashboardMain"
         component={DashboardScreen}
         options={{
+          headerShown: Platform.OS !== 'web',
+          headerLeft: () => null, // No home button on dashboard itself
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
               <View style={{
@@ -58,14 +73,50 @@ const DashboardStack = () => {
         component={CallReviewScreen}
         options={{headerShown: false}}
       />
+      <Stack.Screen
+        name="BulkVitalsRecord"
+        component={BulkVitalsRecordScreen}
+        options={{
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#2196F3',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                HealthbridgeAI
+              </Text>
+            </View>
+          ),
+        }}
+      />
     </Stack.Navigator>
   );
 };
 
 // Pending reports stack
-const ReportsStack = () => {
+const ReportsStack = ({navigation}: any) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#2196F3"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('Dashboard', {screen: 'DashboardMain'})}
+          />
+        ) : undefined,
+      }}
+    >
       <Stack.Screen
         name="PendingReportsMain"
         component={PendingReportsScreen}
@@ -115,9 +166,21 @@ const ReportsStack = () => {
 };
 
 // Search patients stack
-const SearchStack = () => {
+const SearchStack = ({navigation}: any) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#2196F3"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('Dashboard', {screen: 'DashboardMain'})}
+          />
+        ) : undefined,
+      }}
+    >
       <Stack.Screen
         name="SearchPatientsMain"
         component={SearchPatientsScreen}
@@ -172,9 +235,21 @@ const SearchStack = () => {
 };
 
 // My patients stack
-const PatientsStack = () => {
+const PatientsStack = ({navigation}: any) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#2196F3"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('Dashboard', {screen: 'DashboardMain'})}
+          />
+        ) : undefined,
+      }}
+    >
       <Stack.Screen
         name="MyPatientsMain"
         component={MyPatientsScreen}
@@ -229,9 +304,21 @@ const PatientsStack = () => {
 };
 
 // Profile stack
-const ProfileStack = () => {
+const ProfileStack = ({navigation}: any) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#2196F3"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('Dashboard', {screen: 'DashboardMain'})}
+          />
+        ) : undefined,
+      }}
+    >
       <Stack.Screen
         name="DoctorProfileMain"
         component={DoctorProfileScreen}
@@ -267,6 +354,7 @@ export const DoctorNavigator = () => {
         headerShown: false,
         tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: '#666',
+        tabBarStyle: Platform.OS === 'web' ? {display: 'none'} : undefined,
       }}>
       <Tab.Screen
         name="Dashboard"

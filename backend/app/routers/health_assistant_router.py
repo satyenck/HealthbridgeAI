@@ -20,6 +20,7 @@ class Message(BaseModel):
 
 class InterviewRequest(BaseModel):
     conversation_history: List[Message]
+    language: Optional[str] = "en"  # en, gu, hi
 
 
 class InterviewResponse(BaseModel):
@@ -57,8 +58,9 @@ async def conduct_interview(
             for msg in request.conversation_history
         ]
 
-        # Get response from AI
-        result = gemini_service.conduct_symptom_interview(conversation_history)
+        # Get response from AI with language support
+        language = request.language or "en"
+        result = gemini_service.conduct_symptom_interview(conversation_history, language=language)
 
         return InterviewResponse(
             next_question=result.get("next_question"),

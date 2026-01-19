@@ -69,9 +69,16 @@ export const ReviewedReportsScreen = ({navigation}: any) => {
         </View>
       </View>
 
-      <Text style={styles.reportPreview} numberOfLines={3}>
-        {item.content.diagnosis}
-      </Text>
+      {item.content?.diagnosis && (
+        <Text style={styles.reportPreview} numberOfLines={3}>
+          {item.content.diagnosis}
+        </Text>
+      )}
+      {item.content?.symptoms && !item.content?.diagnosis && (
+        <Text style={styles.reportPreview} numberOfLines={3}>
+          {item.content.symptoms}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 

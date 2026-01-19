@@ -1,7 +1,8 @@
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
-import {Platform, PermissionsAndroid} from 'react-native';
+import {Platform} from 'react-native';
 
-const audioRecorderPlayer = new AudioRecorderPlayer();
+// AudioRecorderPlayer is a singleton instance (not a class), so we use it directly
+// No need for lazy initialization or calling 'new' - just use the exported instance
 
 export interface RecordingResult {
   uri: string;
@@ -18,6 +19,8 @@ export const voiceService = {
   async requestPermissions(): Promise<boolean> {
     if (Platform.OS === 'android') {
       try {
+        // Dynamic import for Android only
+        const {PermissionsAndroid} = require('react-native');
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
           {
@@ -47,16 +50,27 @@ export const voiceService = {
       throw new Error('Microphone permission denied');
     }
 
+    // Use app-specific directory paths
+    const RNFS = require('react-native-fs');
     const path = Platform.select({
       ios: 'healthbridge_recording.m4a',
-      android: 'sdcard/healthbridge_recording.mp4',
+      android: `${RNFS.CachesDirectoryPath}/healthbridge_recording.m4a`,
     });
 
+    // Proper audio settings for NitroModules
+    const audioSet = {
+      AudioEncoderAndroid: 3, // AAC encoder (AudioEncoderAndroidType.AAC)
+      AudioSamplingRate: 16000,
+      AudioChannels: 1,
+      AudioEncodingBitRate: 128000,
+    };
+
     recordingStartTime = Date.now();
-    const uri = await audioRecorderPlayer.startRecorder(path);
-    audioRecorderPlayer.addRecordBackListener((e) => {
-      // You can use this for real-time duration updates in the UI
-      // console.log('Recording:', e.currentPosition);
+    const uri = await AudioRecorderPlayer.startRecorder(path, audioSet, false);
+    console.log('Recording started at:', uri);
+    AudioRecorderPlayer.addRecordBackListener((e) => {
+      // Log recording progress
+      console.log('Recording position:', e.currentPosition);
     });
 
     return uri;
@@ -66,8 +80,8 @@ export const voiceService = {
    * Stop recording and return recording details
    */
   async stopRecording(): Promise<RecordingResult> {
-    const result = await audioRecorderPlayer.stopRecorder();
-    audioRecorderPlayer.removeRecordBackListener();
+    const result = await AudioRecorderPlayer.stopRecorder();
+    AudioRecorderPlayer.removeRecordBackListener();
 
     // Calculate duration
     const duration = recordingStartTime > 0 ? Date.now() - recordingStartTime : 0;
@@ -75,6 +89,15 @@ export const voiceService = {
     // Get file stats
     const RNFS = require('react-native-fs');
     const stat = await RNFS.stat(result);
+
+    // Validate recording
+    if (stat.size < 1000) {
+      throw new Error('Recording is too short or empty. Please record for at least 2 seconds.');
+    }
+
+    if (duration < 2000) {
+      throw new Error('Recording duration must be at least 2 seconds.');
+    }
 
     return {
       uri: result,
@@ -110,12 +133,12 @@ export const voiceService = {
    * Play recorded audio
    */
   async startPlayback(uri: string): Promise<void> {
-    await audioRecorderPlayer.startPlayer(uri);
-    audioRecorderPlayer.addPlayBackListener((e) => {
+    await AudioRecorderPlayer.startPlayer(uri);
+    AudioRecorderPlayer.addPlayBackListener((e) => {
       // You can use this for playback progress updates
       // console.log('Playback:', e.currentPosition, '/', e.duration);
       if (e.currentPosition === e.duration) {
-        audioRecorderPlayer.stopPlayer();
+        AudioRecorderPlayer.stopPlayer();
       }
     });
   },
@@ -124,29 +147,29 @@ export const voiceService = {
    * Stop playback
    */
   async stopPlayback(): Promise<void> {
-    await audioRecorderPlayer.stopPlayer();
-    audioRecorderPlayer.removePlayBackListener();
+    await AudioRecorderPlayer.stopPlayer();
+    AudioRecorderPlayer.removePlayBackListener();
   },
 
   /**
    * Pause playback
    */
   async pausePlayback(): Promise<void> {
-    await audioRecorderPlayer.pausePlayer();
+    await AudioRecorderPlayer.pausePlayer();
   },
 
   /**
    * Resume playback
    */
   async resumePlayback(): Promise<void> {
-    await audioRecorderPlayer.resumePlayer();
+    await AudioRecorderPlayer.resumePlayer();
   },
 
   /**
    * Clean up resources
    */
   cleanup(): void {
-    audioRecorderPlayer.removeRecordBackListener();
-    audioRecorderPlayer.removePlayBackListener();
+    AudioRecorderPlayer.removeRecordBackListener();
+    AudioRecorderPlayer.removePlayBackListener();
   },
 };

@@ -32,8 +32,9 @@ export const BulkVitalsRecordScreen: React.FC<BulkVitalsRecordScreenProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [results, setResults] = useState<PatientVitalsResult[]>([]);
-  const [audioRecorderPlayer] = useState(new AudioRecorderPlayer());
   const [recordingDuration, setRecordingDuration] = useState(0);
+
+  // AudioRecorderPlayer is a singleton instance, use it directly
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -49,13 +50,20 @@ export const BulkVitalsRecordScreen: React.FC<BulkVitalsRecordScreenProps> = ({
     };
   }, [isRecording]);
 
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      AudioRecorderPlayer.stopRecorder().catch(() => {});
+    };
+  }, []);
+
   const startRecording = async () => {
     try {
       setIsRecording(true);
       setTranscription('');
       setResults([]);
       setRecordingDuration(0);
-      await audioRecorderPlayer.startRecorder();
+      await AudioRecorderPlayer.startRecorder();
     } catch (error) {
       console.error('Failed to start recording:', error);
       Alert.alert('Error', 'Failed to start recording');
@@ -65,7 +73,7 @@ export const BulkVitalsRecordScreen: React.FC<BulkVitalsRecordScreenProps> = ({
 
   const stopRecording = async () => {
     try {
-      const result = await audioRecorderPlayer.stopRecorder();
+      const result = await AudioRecorderPlayer.stopRecorder();
       setIsRecording(false);
 
       if (result) {

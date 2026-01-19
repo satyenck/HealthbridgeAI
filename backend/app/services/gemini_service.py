@@ -618,13 +618,14 @@ Text to speak:
             print(f"TTS generation error: {str(e)}")
             raise Exception(f"Failed to generate Gujarati voice: {str(e)}")
 
-    def conduct_symptom_interview(self, conversation_history: list) -> dict:
+    def conduct_symptom_interview(self, conversation_history: list, language: str = "en") -> dict:
         """
         Conduct an intelligent symptom interview with the patient.
         Asks follow-up questions based on previous responses (max 6 questions).
 
         Args:
             conversation_history: List of {role: "assistant"|"user", content: str}
+            language: Language code (en, gu, hi)
 
         Returns:
             {
@@ -638,10 +639,17 @@ Text to speak:
             assistant_messages = [msg for msg in conversation_history if msg.get('role') == 'assistant']
             questions_asked = len(assistant_messages)
 
+            # Greeting messages in different languages
+            greetings = {
+                "en": "Thank you for contacting me. Please describe your symptoms, so I can help you.",
+                "gu": "મારો સંપર્ક કરવા બદલ આભાર. કૃપા કરીને તમારા લક્ષણો વર્ણવો, જેથી હું તમને મદદ કરી શકું.",
+                "hi": "मुझसे संपर्क करने के लिए धन्यवाद। कृपया अपने लक्षणों का वर्णन करें, ताकि मैं आपकी मदद कर सकूं।"
+            }
+
             # If this is the start, return greeting
             if questions_asked == 0:
                 return {
-                    "next_question": "Thank you for contacting me. Please describe your symptoms, so I can help you.",
+                    "next_question": greetings.get(language, greetings["en"]),
                     "is_complete": False,
                     "summary": None
                 }
@@ -688,8 +696,15 @@ Provide a clear, detailed symptoms summary that a doctor can use to understand t
                     "summary": summary
                 }
 
+            # Language instructions
+            language_instructions = {
+                "en": "Ask the question in English.",
+                "gu": "Ask the question in Gujarati (ગુજરાતી). Keep medical terms in English but write the rest in Gujarati script.",
+                "hi": "Ask the question in Hindi (हिंदी). Keep medical terms in English but write the rest in Hindi script."
+            }
+
             # Generate intelligent follow-up question
-            system_prompt = """You are a medical AI assistant conducting a symptom assessment interview.
+            system_prompt = f"""You are a medical AI assistant conducting a symptom assessment interview.
 Your role is to ask relevant follow-up questions to better understand the patient's condition.
 
 Guidelines:
@@ -705,7 +720,9 @@ Guidelines:
   * Previous episodes or treatments tried
 - Be empathetic and professional
 - Keep questions clear and easy to understand
-- Avoid medical jargon when possible"""
+- Avoid medical jargon when possible
+
+IMPORTANT: {language_instructions.get(language, language_instructions["en"])}"""
 
             conversation_text = "\n".join([
                 f"{'You' if msg['role'] == 'assistant' else 'Patient'}: {msg['content']}"
@@ -717,6 +734,8 @@ Guidelines:
 {conversation_text}
 
 This is question {questions_asked + 1} of 6. Make it count by asking about the most important missing information.
+
+Remember: {language_instructions.get(language, language_instructions["en"])}
 
 Provide ONLY the question, no other text."""
 

@@ -36,22 +36,52 @@ export const HealthAssistantScreen = ({navigation}: any) => {
   const [editedSummary, setEditedSummary] = useState<string>('');
   const [creating, setCreating] = useState<boolean>(false);
   const [questionCount, setQuestionCount] = useState<number>(0);
+  const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'gu' | 'hi'>('en');
+  const [showLanguageSelector, setShowLanguageSelector] = useState<boolean>(true);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    // Start the interview with initial greeting
-    startInterview();
-
     // Cleanup TTS on unmount
     return () => {
-      try {
-        Tts.stop();
-      } catch (error) {
-        // Ignore TTS cleanup errors
-      }
+      (async () => {
+        try {
+          await Tts.stop();
+        } catch (error) {
+          // Ignore TTS cleanup errors
+        }
+      })();
     };
   }, []);
+
+  useEffect(() => {
+    // Initialize TTS when language changes
+    initializeTts();
+  }, [selectedLanguage]);
+
+  const initializeTts = async () => {
+    try {
+      // Map language code to TTS language
+      const ttsLanguage = {
+        'en': 'en-US',
+        'gu': 'gu-IN',
+        'hi': 'hi-IN',
+      }[selectedLanguage];
+
+      // Set language
+      await Tts.setDefaultLanguage(ttsLanguage);
+
+      // Initialize TTS engine
+      await Tts.getInitStatus();
+
+      // Set default voice settings
+      await Tts.setDefaultRate(0.5);
+      await Tts.setDefaultPitch(1.0);
+    } catch (error) {
+      console.log('TTS initialization:', error);
+      // TTS might not be available, but we can continue without it
+    }
+  };
 
   useEffect(() => {
     // Auto-scroll to bottom when conversation updates
@@ -63,30 +93,38 @@ export const HealthAssistantScreen = ({navigation}: any) => {
   useEffect(() => {
     // Speak the question when in voice mode and a new question arrives
     if (inputMode === 'voice' && currentQuestion && !loading) {
-      speakQuestion(currentQuestion);
+      (async () => {
+        await speakQuestion(currentQuestion);
+      })();
     }
   }, [currentQuestion, inputMode, loading]);
 
-  const speakQuestion = (text: string) => {
+  const speakQuestion = async (text: string) => {
     try {
       // Stop any ongoing speech
       try {
-        Tts.stop();
+        await Tts.stop();
       } catch (e) {
         // Ignore stop errors
       }
-      // Speak the new question with options
-      Tts.speak(text, {
+
+      // Check if TTS is available and voices are installed
+      const voices = await Tts.voices();
+      if (!voices || voices.length === 0) {
+        console.log('No TTS voices available');
+        return;
+      }
+
+      // Speak the new question with simplified options
+      await Tts.speak(text, {
         androidParams: {
-          KEY_PARAM_PAN: -1,
           KEY_PARAM_VOLUME: 1,
           KEY_PARAM_STREAM: 'STREAM_MUSIC',
         },
-        iosVoiceId: 'com.apple.ttsbundle.Samantha-compact',
-        rate: 0.5,
       });
-    } catch (error) {
-      console.error('TTS error:', error);
+    } catch (error: any) {
+      console.log('TTS error:', error.message || error);
+      // Silently fail if TTS is not available - user can still use text mode
     }
   };
 
@@ -95,6 +133,7 @@ export const HealthAssistantScreen = ({navigation}: any) => {
       setLoading(true);
       const response = await apiService.post(API_ENDPOINTS.HEALTH_ASSISTANT_INTERVIEW, {
         conversation_history: [],
+        language: selectedLanguage,
       });
 
       setCurrentQuestion(response.next_question);
@@ -102,6 +141,7 @@ export const HealthAssistantScreen = ({navigation}: any) => {
         {role: 'assistant', content: response.next_question},
       ]);
       setQuestionCount(1);
+      setShowLanguageSelector(false);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to start interview');
     } finally {
@@ -129,6 +169,7 @@ export const HealthAssistantScreen = ({navigation}: any) => {
       // Get next question or summary from backend
       const response = await apiService.post(API_ENDPOINTS.HEALTH_ASSISTANT_INTERVIEW, {
         conversation_history: updatedHistory,
+        language: selectedLanguage,
       });
 
       if (response.is_complete) {
@@ -304,6 +345,106 @@ export const HealthAssistantScreen = ({navigation}: any) => {
     );
   }
 
+  // Language selection screen
+  if (showLanguageSelector) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Health Assistant</Text>
+          <View style={{width: 24}} />
+        </View>
+
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          <View style={styles.welcomeCard}>
+            <Icon name="health-and-safety" size={48} color="#4CAF50" />
+            <Text style={styles.welcomeTitle}>AI Health Assistant</Text>
+            <Text style={styles.welcomeText}>
+              I'll ask you questions in your preferred language to understand your symptoms better.
+            </Text>
+          </View>
+
+          <View style={styles.languageSelectorCard}>
+            <Text style={styles.languageSelectorTitle}>Select Your Language</Text>
+            <Text style={styles.languageSelectorSubtitle}>
+              Choose the language you're most comfortable with
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.languageOption,
+                selectedLanguage === 'en' && styles.languageOptionSelected,
+              ]}
+              onPress={() => setSelectedLanguage('en')}>
+              <View style={styles.languageOptionContent}>
+                <Text style={styles.languageOptionFlag}>🇬🇧</Text>
+                <View style={styles.languageOptionText}>
+                  <Text style={styles.languageOptionName}>English</Text>
+                  <Text style={styles.languageOptionNative}>English</Text>
+                </View>
+              </View>
+              {selectedLanguage === 'en' && (
+                <Icon name="check-circle" size={24} color="#4CAF50" />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.languageOption,
+                selectedLanguage === 'gu' && styles.languageOptionSelected,
+              ]}
+              onPress={() => setSelectedLanguage('gu')}>
+              <View style={styles.languageOptionContent}>
+                <Text style={styles.languageOptionFlag}>🇮🇳</Text>
+                <View style={styles.languageOptionText}>
+                  <Text style={styles.languageOptionName}>Gujarati</Text>
+                  <Text style={styles.languageOptionNative}>ગુજરાતી</Text>
+                </View>
+              </View>
+              {selectedLanguage === 'gu' && (
+                <Icon name="check-circle" size={24} color="#4CAF50" />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.languageOption,
+                selectedLanguage === 'hi' && styles.languageOptionSelected,
+              ]}
+              onPress={() => setSelectedLanguage('hi')}>
+              <View style={styles.languageOptionContent}>
+                <Text style={styles.languageOptionFlag}>🇮🇳</Text>
+                <View style={styles.languageOptionText}>
+                  <Text style={styles.languageOptionName}>Hindi</Text>
+                  <Text style={styles.languageOptionNative}>हिंदी</Text>
+                </View>
+              </View>
+              {selectedLanguage === 'hi' && (
+                <Icon name="check-circle" size={24} color="#4CAF50" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={startInterview}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Icon name="chat" size={24} color="#fff" />
+                <Text style={styles.startButtonText}>Start Interview</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -347,7 +488,7 @@ export const HealthAssistantScreen = ({navigation}: any) => {
               <Text style={styles.questionText}>{currentQuestion}</Text>
               {inputMode === 'voice' && (
                 <TouchableOpacity
-                  onPress={() => speakQuestion(currentQuestion)}
+                  onPress={async () => await speakQuestion(currentQuestion)}
                   style={styles.speakerButton}>
                   <Icon name="volume-up" size={20} color="#2196F3" />
                 </TouchableOpacity>
@@ -360,10 +501,10 @@ export const HealthAssistantScreen = ({navigation}: any) => {
                   styles.modeButton,
                   inputMode === 'text' && styles.modeButtonActive,
                 ]}
-                onPress={() => {
+                onPress={async () => {
                   setInputMode('text');
                   try {
-                    Tts.stop();
+                    await Tts.stop();
                   } catch (e) {
                     // Ignore stop errors
                   }
@@ -387,10 +528,10 @@ export const HealthAssistantScreen = ({navigation}: any) => {
                   styles.modeButton,
                   inputMode === 'voice' && styles.modeButtonActive,
                 ]}
-                onPress={() => {
+                onPress={async () => {
                   setInputMode('voice');
                   if (currentQuestion) {
-                    speakQuestion(currentQuestion);
+                    await speakQuestion(currentQuestion);
                   }
                 }}>
                 <Icon
@@ -688,6 +829,78 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   createButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  languageSelectorCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  languageSelectorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  languageSelectorSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  languageOptionSelected: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#4CAF50',
+  },
+  languageOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  languageOptionFlag: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  languageOptionText: {
+    flexDirection: 'column',
+  },
+  languageOptionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  languageOptionNative: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  startButton: {
+    backgroundColor: '#2196F3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  startButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',

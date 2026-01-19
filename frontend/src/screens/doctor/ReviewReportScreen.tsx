@@ -340,95 +340,158 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Priority</Text>
-          <View style={styles.priorityButtons}>
-            {Object.values(Priority).map((p) => (
-              <TouchableOpacity
-                key={p}
-                style={[
-                  styles.priorityButton,
-                  priority === p && styles.priorityButtonActive,
-                ]}
-                onPress={() => setPriority(p)}
-                disabled={!editing}>
-                <Text
+        {/* Priority Section */}
+        {editing ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Priority</Text>
+            <View style={styles.priorityButtons}>
+              {Object.values(Priority).map((p) => (
+                <TouchableOpacity
+                  key={p}
                   style={[
-                    styles.priorityButtonText,
-                    priority === p && styles.priorityButtonTextActive,
-                  ]}>
-                  {p}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                    styles.priorityButton,
+                    priority === p && styles.priorityButtonActive,
+                  ]}
+                  onPress={() => setPriority(p)}>
+                  <Text
+                    style={[
+                      styles.priorityButtonText,
+                      priority === p && styles.priorityButtonTextActive,
+                    ]}>
+                    {p}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={styles.readOnlyCard}>
+            <Text style={styles.readOnlyLabel}>Priority</Text>
+            <View style={[styles.priorityBadge, styles[`priorityBadge${priority}`]]}>
+              <Text style={styles.priorityBadgeText}>{priority}</Text>
+            </View>
+          </View>
+        )}
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Symptoms</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={symptoms}
-            onChangeText={setSymptoms}
-            multiline
-            editable={editing}
-          />
-        </View>
+        {/* Symptoms Section */}
+        {editing ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Symptoms</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={symptoms}
+              onChangeText={setSymptoms}
+              multiline
+            />
+          </View>
+        ) : (
+          symptoms && (
+            <View style={styles.readOnlyCard}>
+              <Text style={styles.readOnlyLabel}>Symptoms</Text>
+              <Text style={styles.readOnlyValue}>{symptoms}</Text>
+            </View>
+          )
+        )}
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Diagnosis</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={diagnosis}
-            onChangeText={setDiagnosis}
-            multiline
-            editable={editing}
-          />
-        </View>
+        {/* Diagnosis Section */}
+        {editing ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Diagnosis</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={diagnosis}
+              onChangeText={setDiagnosis}
+              multiline
+            />
+          </View>
+        ) : (
+          diagnosis && (
+            <View style={styles.readOnlyCard}>
+              <Text style={styles.readOnlyLabel}>Diagnosis</Text>
+              <Text style={styles.readOnlyValue}>{diagnosis}</Text>
+            </View>
+          )
+        )}
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Treatment</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={treatment}
-            onChangeText={setTreatment}
-            multiline
-            editable={editing}
-          />
-        </View>
+        {/* Treatment Section */}
+        {editing ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Treatment</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={treatment}
+              onChangeText={setTreatment}
+              multiline
+            />
+          </View>
+        ) : (
+          treatment && (
+            <View style={styles.readOnlyCard}>
+              <Text style={styles.readOnlyLabel}>Treatment</Text>
+              <Text style={styles.readOnlyValue}>{treatment}</Text>
+            </View>
+          )
+        )}
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Tests</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={tests}
-            onChangeText={setTests}
-            multiline
-            editable={editing}
-          />
-        </View>
+        {/* Tests Section */}
+        {editing ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Tests</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={tests}
+              onChangeText={setTests}
+              multiline
+            />
+          </View>
+        ) : (
+          tests && (
+            <View style={styles.readOnlyCard}>
+              <Text style={styles.readOnlyLabel}>Tests</Text>
+              <Text style={styles.readOnlyValue}>{tests}</Text>
+            </View>
+          )
+        )}
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Prescription</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={prescription}
-            onChangeText={setPrescription}
-            multiline
-            editable={editing}
-          />
-        </View>
+        {/* Prescription Section */}
+        {editing ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Prescription</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={prescription}
+              onChangeText={setPrescription}
+              multiline
+            />
+          </View>
+        ) : (
+          prescription && (
+            <View style={styles.readOnlyCard}>
+              <Text style={styles.readOnlyLabel}>Prescription</Text>
+              <Text style={styles.readOnlyValue}>{prescription}</Text>
+            </View>
+          )
+        )}
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Next Steps</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={nextSteps}
-            onChangeText={setNextSteps}
-            multiline
-            editable={editing}
-          />
-        </View>
+        {/* Next Steps Section */}
+        {editing ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Next Steps</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={nextSteps}
+              onChangeText={setNextSteps}
+              multiline
+            />
+          </View>
+        ) : (
+          nextSteps && (
+            <View style={styles.readOnlyCard}>
+              <Text style={styles.readOnlyLabel}>Next Steps</Text>
+              <Text style={styles.readOnlyValue}>{nextSteps}</Text>
+            </View>
+          )
+        )}
 
         {/* Patient Uploaded Files */}
         {mediaFiles.length > 0 && (
@@ -560,16 +623,29 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
 
       {editing && userRole === UserRole.DOCTOR && (
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-            disabled={saving}>
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save & Mark Reviewed</Text>
-            )}
-          </TouchableOpacity>
+          <View style={styles.footerButtons}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                setEditing(false);
+                if (report) {
+                  populateForm(report);
+                }
+              }}
+              disabled={saving}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleSave}
+              disabled={saving}>
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save & Mark Reviewed</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -685,7 +761,26 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
   },
+  footerButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
   saveButton: {
+    flex: 1,
     backgroundColor: '#4CAF50',
     padding: 16,
     borderRadius: 8,
@@ -784,5 +879,48 @@ const styles = StyleSheet.create({
   fullScreenImage: {
     flex: 1,
     width: '100%',
+  },
+  readOnlyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  readOnlyLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4CAF50',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  readOnlyValue: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 22,
+  },
+  priorityBadge: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  priorityBadgeHIGH: {
+    backgroundColor: '#ffebee',
+  },
+  priorityBadgeMEDIUM: {
+    backgroundColor: '#fff8e1',
+  },
+  priorityBadgeLOW: {
+    backgroundColor: '#e8f5e9',
+  },
+  priorityBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
 });

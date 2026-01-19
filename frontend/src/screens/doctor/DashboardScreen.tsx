@@ -8,9 +8,11 @@ import {
   RefreshControl,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {doctorService, DoctorStats} from '../../services/doctorService';
 
 export const DashboardScreen = ({navigation}: any) => {
@@ -27,10 +29,19 @@ export const DashboardScreen = ({navigation}: any) => {
   const loadStats = async () => {
     try {
       setLoading(true);
+      console.log('[DashboardScreen] Loading stats...');
       const data = await doctorService.getStats();
+      console.log('[DashboardScreen] Stats loaded:', data);
       setStats(data);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to load statistics');
+      console.error('[DashboardScreen] Error loading stats:', error);
+      // Don't show alert, just use default stats
+      setStats({
+        total_patients: 0,
+        pending_reports: 0,
+        reviewed_reports: 0,
+        total_encounters: 0,
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -42,10 +53,38 @@ export const DashboardScreen = ({navigation}: any) => {
     loadStats();
   };
 
+  const handleProfile = () => {
+    navigation.navigate('Profile');
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.multiRemove(['access_token', 'user_id', 'user_role']);
+            navigation.replace('Login');
+          },
+        },
+      ],
+    );
+  };
+
+  console.log('[DashboardScreen] Rendering, loading:', loading, 'stats:', stats);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
+        <Text style={{marginTop: 10}}>Loading dashboard...</Text>
       </View>
     );
   }
@@ -53,7 +92,20 @@ export const DashboardScreen = ({navigation}: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Doctor Dashboard</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.logoContainer}>
+            <Icon name="favorite" size={24} color="#fff" />
+          </View>
+          <Text style={styles.title}>Doctor Dashboard</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerButton} onPress={handleProfile}>
+              <Icon name="person" size={24} color="#2196F3" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={handleLogout}>
+              <Icon name="logout" size={24} color="#e74c3c" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       <ScrollView
@@ -146,11 +198,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    minHeight: '100vh',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: '100vh',
   },
   header: {
     backgroundColor: '#fff',
@@ -163,6 +217,37 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2196F3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#2196F3',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    marginLeft: 'auto',
+    gap: 8,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   title: {
     fontSize: 24,
     fontWeight: '600',
@@ -174,6 +259,9 @@ const styles = StyleSheet.create({
   actionsSection: {
     padding: 20,
     gap: 16,
+    maxWidth: Platform.OS === 'web' ? 800 : undefined,
+    width: '100%',
+    alignSelf: 'center',
   },
   actionButton: {
     flexDirection: 'row',

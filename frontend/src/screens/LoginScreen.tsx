@@ -7,17 +7,18 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  Platform,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {authService} from '../services/authService';
 
 export const LoginScreen = ({navigation}: any) => {
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [codeSent, setCodeSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSendCode = async () => {
+  const handleLogin = async () => {
     if (!phoneNumber) {
       Alert.alert('Error', 'Please enter your phone number');
       return;
@@ -25,25 +26,7 @@ export const LoginScreen = ({navigation}: any) => {
 
     setLoading(true);
     try {
-      await authService.sendPhoneCode(phoneNumber);
-      setCodeSent(true);
-      Alert.alert('Success', 'Verification code sent to your phone');
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to send code');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    if (!verificationCode) {
-      Alert.alert('Error', 'Please enter the verification code');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await authService.verifyPhoneCode(phoneNumber, verificationCode);
+      const response = await authService.directPhoneLogin(phoneNumber);
 
       // Navigate to role-based app screen
       const roleToScreen: {[key: string]: string} = {
@@ -59,7 +42,12 @@ export const LoginScreen = ({navigation}: any) => {
       console.log('[LoginScreen] User role:', response.role, '→ Navigating to:', screenName);
       navigation.replace(screenName as never);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Invalid code');
+      const errorMessage = error.response?.data?.detail || 'Login failed';
+      if (errorMessage === 'Phone number not found in database') {
+        Alert.alert('Error', 'Phone number not registered. Please contact administrator.');
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -73,16 +61,21 @@ export const LoginScreen = ({navigation}: any) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <View style={styles.logoContainer}>
-          <Icon name="favorite" size={36} color="#fff" />
-        </View>
-        <Text style={styles.title}>HealthbridgeAI</Text>
-      </View>
-      <Text style={styles.subtitle}>Your Personal Health Assistant</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            <View style={styles.logoContainer}>
+              <Icon name="favorite" size={36} color="#fff" />
+            </View>
+            <Text style={styles.title}>HealthbridgeAI</Text>
+          </View>
+          <Text style={styles.subtitle}>Your Personal Health Assistant</Text>
 
-      <View style={styles.formContainer}>
+          <View style={styles.formContainer}>
         <Text style={styles.label}>Phone Number</Text>
         <TextInput
           style={styles.input}
@@ -90,48 +83,18 @@ export const LoginScreen = ({navigation}: any) => {
           value={phoneNumber}
           onChangeText={setPhoneNumber}
           keyboardType="phone-pad"
-          editable={!codeSent}
         />
 
-        {!codeSent ? (
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleSendCode}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Send Verification Code</Text>
-            )}
-          </TouchableOpacity>
-        ) : (
-          <>
-            <Text style={styles.label}>Verification Code</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter 6-digit code"
-              value={verificationCode}
-              onChangeText={setVerificationCode}
-              keyboardType="number-pad"
-              maxLength={6}
-            />
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleVerifyCode}
-              disabled={loading}>
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Verify & Login</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => setCodeSent(false)}>
-              <Text style={styles.linkText}>Change Phone Number</Text>
-            </TouchableOpacity>
-          </>
-        )}
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleLogin}
+          disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Login</Text>
+          )}
+        </TouchableOpacity>
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
@@ -145,16 +108,28 @@ export const LoginScreen = ({navigation}: any) => {
           <Text style={styles.googleButtonText}>Sign in with Google</Text>
         </TouchableOpacity>
       </View>
-    </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    padding: 20,
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
+    minHeight: Platform.OS === 'web' ? '100vh' : undefined,
+  },
+  container: {
+    padding: 20,
+    paddingTop: Platform.OS === 'web' ? 60 : 20,
+    maxWidth: Platform.OS === 'web' ? 450 : undefined,
+    width: '100%',
+    alignSelf: 'center',
   },
   headerContainer: {
     flexDirection: 'row',

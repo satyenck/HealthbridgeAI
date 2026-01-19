@@ -21,6 +21,7 @@ class ApiService {
     this.client.interceptors.request.use(
       async config => {
         const token = await AsyncStorage.getItem('access_token');
+        console.log('[ApiService] Token from storage:', token ? `${token.substring(0, 20)}...` : 'null');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }

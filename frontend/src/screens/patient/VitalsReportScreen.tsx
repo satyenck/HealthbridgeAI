@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -31,12 +31,20 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
         "Hi! I'm your Health Assistant. Tell me about your vital signs like blood pressure, weight, temperature, or blood sugar. You can also mention when you measured them, like 'today' or 'yesterday'.",
     },
   ]);
-  const [audioRecorderPlayer] = useState(new AudioRecorderPlayer());
+
+  // AudioRecorderPlayer is a singleton instance, use it directly
+
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      AudioRecorderPlayer.stopRecorder().catch(() => {});
+    };
+  }, []);
 
   const startRecording = async () => {
     try {
       setIsRecording(true);
-      await audioRecorderPlayer.startRecorder();
+      await AudioRecorderPlayer.startRecorder();
     } catch (error) {
       console.error('Failed to start recording:', error);
       Alert.alert('Error', 'Failed to start recording');
@@ -46,7 +54,7 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
 
   const stopRecording = async () => {
     try {
-      const result = await audioRecorderPlayer.stopRecorder();
+      const result = await AudioRecorderPlayer.stopRecorder();
       setIsRecording(false);
 
       if (result) {

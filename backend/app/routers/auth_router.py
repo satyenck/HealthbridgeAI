@@ -144,3 +144,64 @@ async def get_current_user_info(
         "email": current_user.email,
         "is_active": current_user.is_active
     }
+
+
+@router.get("/phone/get-code/{phone_number}")
+async def get_verification_code_dev(phone_number: str):
+    """
+    DEVELOPMENT ONLY: Get verification code for a phone number.
+    This endpoint should be removed in production.
+    """
+    code = phone_auth_service.verification_codes.get(phone_number)
+    if code:
+        return {"phone_number": phone_number, "code": code}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No verification code found for this phone number"
+        )
+
+
+@router.post("/phone/direct-login", response_model=Token)
+async def direct_phone_login(
+    phone_request: PhoneSendCodeRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Direct login with phone number if user exists in database.
+    Only allows login for users with roles: PATIENT, DOCTOR, PHARMACY, LAB, ADMIN.
+    """
+    user = db.query(User).filter(User.phone_number == phone_request.phone_number).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Phone number not found in database"
+        )
+
+    # Check if user has allowed role
+    allowed_roles = [UserRole.PATIENT, UserRole.DOCTOR, UserRole.PHARMACY, UserRole.LAB, UserRole.ADMIN]
+    if user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User role not authorized for direct login"
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is not active"
+        )
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user.user_id), "role": user.role.value},
+        expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": user.user_id,
+        "role": user.role
+    }

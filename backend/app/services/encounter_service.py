@@ -90,19 +90,37 @@ class EncounterService:
             )
             priority = Priority[priority_str]  # Convert string to enum
 
-        # Create summary report
-        summary_report = SummaryReport(
-            encounter_id=encounter_id,
-            status=ReportStatus.PENDING_REVIEW,  # Needs doctor review
-            priority=priority,
-            content=report_content
-        )
+        # Check if summary report already exists
+        existing_report = db.query(SummaryReport).filter(
+            SummaryReport.encounter_id == encounter_id
+        ).first()
 
-        db.add(summary_report)
-        db.commit()
-        db.refresh(summary_report)
+        if existing_report:
+            # Update existing report with AI-generated content
+            # Preserve transcription if it exists
+            if existing_report.content and "transcription" in existing_report.content:
+                report_content["transcription"] = existing_report.content["transcription"]
 
-        return summary_report
+            existing_report.content = report_content
+            existing_report.priority = priority
+            # Keep status as is (don't change REVIEWED back to PENDING)
+
+            db.commit()
+            db.refresh(existing_report)
+            return existing_report
+        else:
+            # Create new summary report
+            summary_report = SummaryReport(
+                encounter_id=encounter_id,
+                status=ReportStatus.PENDING_REVIEW,  # Needs doctor review
+                priority=priority,
+                content=report_content
+            )
+
+            db.add(summary_report)
+            db.commit()
+            db.refresh(summary_report)
+            return summary_report
 
     @staticmethod
     def process_voice_encounter(
@@ -113,7 +131,9 @@ class EncounterService:
         """
         Process voice-recorded encounter:
         1. Transcribe audio using Whisper
-        2. Generate AI summary report
+        2. Create summary report with transcription ONLY (no AI analysis yet)
+
+        Doctor can later click "Generate AI Summary" to add AI analysis.
 
         Args:
             encounter_id: UUID of the encounter
@@ -124,18 +144,41 @@ class EncounterService:
             Dictionary with transcription and summary report
         """
         # Transcribe audio
-        transcription = gemini_service.transcribe_audio(audio_base64)
+        transcription_text = gemini_service.transcribe_audio(audio_base64)
+        print(f"=== TRANSCRIPTION RESULT ===")
+        print(f"Transcription: {transcription_text[:200]}...")  # First 200 chars
+        print(f"===========================")
 
-        # Generate summary report from transcription
-        summary_report = EncounterService.generate_ai_summary(
+        # Create summary report with JUST the transcription (doctor's actual words)
+        # No AI generation yet - doctor can trigger that separately
+        summary_report = SummaryReport(
             encounter_id=encounter_id,
-            patient_description=transcription,
-            db=db,
-            auto_assess_priority=True
+            status=ReportStatus.PENDING_REVIEW,  # Needs doctor review
+            priority=None,  # No priority yet
+            content={
+                "transcription": transcription_text,  # Raw transcription
+                "symptoms": "",
+                "diagnosis": "",
+                "treatment": "",
+                "tests": "",
+                "prescription": "",
+                "next_steps": ""
+            }
         )
 
+        db.add(summary_report)
+        db.commit()
+        db.refresh(summary_report)
+
+        print(f"=== SUMMARY REPORT CREATED ===")
+        print(f"Report ID: {summary_report.report_id}")
+        print(f"Status: {summary_report.status}")
+        print(f"=============================")
+
         return {
-            "transcription": transcription,
+            "transcription": {
+                "transcription": transcription_text
+            },
             "summary_report": summary_report
         }
 

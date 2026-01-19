@@ -5,6 +5,7 @@ const getDevBaseUrl = () => {
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:8000';
   }
+  // For web and iOS, use localhost
   return 'http://localhost:8000';
 };
 
@@ -22,6 +23,7 @@ export const API_ENDPOINTS = {
   GOOGLE_LOGIN: '/api/auth/google',
   PHONE_SEND_CODE: '/api/auth/phone/send-code',
   PHONE_VERIFY: '/api/auth/phone/verify',
+  PHONE_DIRECT_LOGIN: '/api/auth/phone/direct-login',
 
   // ============================================================================
   // PROFILE (Patient)

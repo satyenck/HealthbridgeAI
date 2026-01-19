@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text} from 'react-native';
+import {View, Text, Platform} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -23,13 +23,27 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 // Home stack with encounter-related screens
-const HomeStack = () => {
+const HomeStack = ({navigation}: any) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#2196F3"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('HomeMain')}
+          />
+        ) : undefined,
+      }}
+    >
       <Stack.Screen
         name="HomeMain"
         component={HomeScreen}
         options={{
+          headerShown: Platform.OS !== 'web',
+          headerLeft: () => null, // No home button on home screen itself
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
               <View style={{
@@ -109,9 +123,21 @@ const HomeStack = () => {
 };
 
 // Timeline stack
-const TimelineStack = () => {
+const TimelineStack = ({navigation}: any) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#2196F3"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('Home', {screen: 'HomeMain'})}
+          />
+        ) : undefined,
+      }}
+    >
       <Stack.Screen
         name="TimelineMain"
         component={TimelineScreen}
@@ -146,9 +172,21 @@ const TimelineStack = () => {
 };
 
 // Insights stack
-const InsightsStack = () => {
+const InsightsStack = ({navigation}: any) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#2196F3"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('Home', {screen: 'HomeMain'})}
+          />
+        ) : undefined,
+      }}
+    >
       <Stack.Screen
         name="InsightsMain"
         component={InsightsScreen}
@@ -202,9 +240,21 @@ const InsightsStack = () => {
 };
 
 // Profile stack
-const ProfileStack = () => {
+const ProfileStack = ({navigation}: any) => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#2196F3"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('Home', {screen: 'HomeMain'})}
+          />
+        ) : undefined,
+      }}
+    >
       <Stack.Screen
         name="ProfileMain"
         component={ProfileScreen}
@@ -240,7 +290,7 @@ export const PatientNavigator = () => {
         headerShown: false,
         tabBarActiveTintColor: '#2196F3',
         tabBarInactiveTintColor: '#666',
-        tabBarStyle: {
+        tabBarStyle: Platform.OS === 'web' ? {display: 'none'} : {
           height: 70,
           paddingBottom: 10,
           paddingTop: 10,

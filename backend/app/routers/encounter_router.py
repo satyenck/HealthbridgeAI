@@ -26,7 +26,7 @@ from app.schemas_v2 import (
     DoctorProfileResponse,
     LabOrderRequest, PrescriptionRequest
 )
-from app.auth import get_current_active_user, get_current_doctor, get_current_doctor_or_assistant, get_current_patient
+from app.auth import get_current_active_user, get_current_doctor, get_current_doctor_or_assistant, get_current_patient, get_current_user
 from app.services.gemini_service import gemini_service
 from app.services.file_service import FileService
 from app.services.encounter_service import encounter_service
@@ -1224,13 +1224,13 @@ async def create_prescription_for_encounter(
 async def translate_summary_to_language(
     encounter_id: UUID,
     language_request: dict = Body(...),
-    current_doctor: User = Depends(get_current_doctor_or_assistant),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Translate encounter summary report to specified language while keeping medical terms in English.
     Supported languages: en (English), gu (Gujarati), hi (Hindi)
-    Available to doctors and assistants.
+    Available to all authenticated users.
     """
     language = language_request.get("language", "en")
 
@@ -1253,9 +1253,13 @@ async def translate_summary_to_language(
         # Check if Gujarati translation is cached
         if hasattr(summary, 'gujarati_content') and summary.gujarati_content:
             translated_content = summary.gujarati_content
+            print(f"=== USING CACHED GUJARATI TRANSLATION ===")
         else:
             # Translate to Gujarati and cache it
+            print(f"=== TRANSLATING TO GUJARATI ===")
+            print(f"Original content: {original_content}")
             translated_content = gemini_service.translate_consultation_to_gujarati(original_content)
+            print(f"Translated content: {translated_content}")
             try:
                 summary.gujarati_content = translated_content
                 db.commit()

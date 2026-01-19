@@ -3,7 +3,7 @@
 //   DocumentPickerResponse,
 // } from 'react-native-document-picker';
 import {launchImageLibrary, launchCamera, Asset} from 'react-native-image-picker';
-import {Platform, PermissionsAndroid} from 'react-native';
+import {Platform} from 'react-native';
 
 export interface MediaFile {
   uri: string;
@@ -23,6 +23,8 @@ export const mediaService = {
   async requestCameraPermission(): Promise<boolean> {
     if (Platform.OS === 'android') {
       try {
+        // Dynamic import for Android only
+        const {PermissionsAndroid} = require('react-native');
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.CAMERA,
           {

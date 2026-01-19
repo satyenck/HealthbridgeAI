@@ -38,6 +38,19 @@ export const authService = {
     return response;
   },
 
+  async directPhoneLogin(phoneNumber: string): Promise<LoginResponse> {
+    const response = await apiService.post<LoginResponse>(
+      API_ENDPOINTS.PHONE_DIRECT_LOGIN,
+      {
+        phone_number: phoneNumber,
+      },
+    );
+    await AsyncStorage.setItem('access_token', response.access_token);
+    await AsyncStorage.setItem('user_id', response.user_id);
+    await AsyncStorage.setItem('user_role', response.role);
+    return response;
+  },
+
   async logout(): Promise<void> {
     await AsyncStorage.multiRemove(['access_token', 'user_id', 'user_role']);
   },

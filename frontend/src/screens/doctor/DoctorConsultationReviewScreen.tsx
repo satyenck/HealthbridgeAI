@@ -36,6 +36,8 @@ export const DoctorConsultationReviewScreen: React.FC<
   );
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'gu' | 'hi'>(language as 'en' | 'gu' | 'hi');
   const [translating, setTranslating] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
+  const [hasAISummary, setHasAISummary] = useState(false);
 
   useEffect(() => {
     processConsultation();
@@ -51,11 +53,35 @@ export const DoctorConsultationReviewScreen: React.FC<
         audioBase64,
       );
 
+      // Validate response
+      if (!response.transcription?.transcription) {
+        throw new Error('No transcription was generated from the recording. Please ensure you spoke clearly and try again.');
+      }
+
+      if (!response.summary_report?.content) {
+        throw new Error('Failed to generate medical summary from the recording. Please try again with more detailed information.');
+      }
+
       setTranscription(response.transcription.transcription);
       setReportContent(response.summary_report.content);
+
+      // Check if AI summary has been generated (has diagnosis or symptoms)
+      const hasAI = response.summary_report.content?.diagnosis || response.summary_report.content?.symptoms;
+      setHasAISummary(!!hasAI);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to process consultation');
-      navigation.goBack();
+      console.error('Process consultation error:', error);
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to process consultation';
+
+      Alert.alert(
+        'Processing Failed',
+        errorMessage + '\n\nPlease try recording again with clear audio.',
+        [
+          {
+            text: 'Try Again',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     } finally {
       setLoading(false);
     }
@@ -84,20 +110,57 @@ export const DoctorConsultationReviewScreen: React.FC<
     }
   };
 
-  const handleComplete = () => {
-    Alert.alert(
-      'Success',
-      'Consultation documented successfully',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Navigate back to patient timeline
-            navigation.goBack();
+  const handleGenerateAISummary = async () => {
+    try {
+      setGeneratingAI(true);
+
+      // Call generate AI summary endpoint with transcription
+      const response = await encounterService.generateSummary(
+        encounterId,
+        transcription,
+      );
+
+      // Update report content with AI-generated summary
+      setReportContent(response.content);
+      setHasAISummary(true);
+
+      Alert.alert('Success', 'AI summary generated successfully');
+    } catch (error: any) {
+      console.error('AI generation error:', error);
+      Alert.alert('Error', error.message || 'Failed to generate AI summary');
+    } finally {
+      setGeneratingAI(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      setSaving(true);
+
+      // Mark report as REVIEWED
+      await encounterService.updateSummaryReport(encounterId, {
+        status: 'REVIEWED',
+      });
+
+      Alert.alert(
+        'Success',
+        'Consultation documented and marked as reviewed',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate back to patient timeline
+              navigation.goBack();
+            },
           },
-        },
-      ],
-    );
+        ],
+      );
+    } catch (error: any) {
+      console.error('Complete error:', error);
+      Alert.alert('Error', error.message || 'Failed to complete consultation');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -224,6 +287,20 @@ export const DoctorConsultationReviewScreen: React.FC<
 
       {/* Footer */}
       <View style={styles.footer}>
+        {/* Generate AI Summary Button - Only show if no AI summary exists yet */}
+        {!hasAISummary && (
+          <TouchableOpacity
+            style={[styles.button, styles.generateButton]}
+            onPress={handleGenerateAISummary}
+            disabled={generatingAI}>
+            {generatingAI ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.generateButtonText}>Generate AI Summary</Text>
+            )}
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={[styles.button, styles.completeButton]}
           onPress={handleComplete}
@@ -382,6 +459,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
+  },
+  generateButton: {
+    backgroundColor: '#2196F3',
+    marginBottom: 12,
+  },
+  generateButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   completeButton: {
     backgroundColor: '#4CAF50',

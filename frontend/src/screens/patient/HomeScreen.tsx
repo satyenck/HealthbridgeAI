@@ -5,8 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {EncounterType} from '../../types';
 
 const healthTips = [
@@ -72,6 +74,31 @@ export const HomeScreen = ({navigation}: any) => {
     navigation.navigate('VitalsReport');
   };
 
+  const handleProfile = () => {
+    navigation.navigate('Profile');
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.multiRemove(['access_token', 'user_id', 'user_role']);
+            navigation.replace('Login');
+          },
+        },
+      ],
+    );
+  };
+
   const currentTip = healthTips[currentTipIndex];
 
   return (
@@ -81,7 +108,15 @@ export const HomeScreen = ({navigation}: any) => {
           <View style={styles.logoContainer}>
             <Icon name="favorite" size={24} color="#fff" />
           </View>
-          <Text style={styles.pageTitle}>Consult Doctor</Text>
+          <Text style={styles.pageTitle}>HealthbridgeAI</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerButton} onPress={handleProfile}>
+              <Icon name="person" size={24} color="#2196F3" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={handleLogout}>
+              <Icon name="logout" size={24} color="#e74c3c" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -191,14 +226,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  headerActions: {
+    flexDirection: 'row',
+    marginLeft: 'auto',
+    gap: 8,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   logoContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#3498db',
+    backgroundColor: '#2196F3',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#3498db',
+    shadowColor: '#2196F3',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.3,
     shadowRadius: 4,

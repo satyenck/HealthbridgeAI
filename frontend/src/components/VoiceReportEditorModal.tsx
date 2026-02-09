@@ -105,7 +105,7 @@ export const VoiceReportEditorModal: React.FC<VoiceReportEditorModalProps> = ({
       case 'processing':
         return (
           <View style={styles.processingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
+            <ActivityIndicator size="large" color="#00ACC1" />
             <Text style={styles.processingText}>Processing your voice...</Text>
             <Text style={styles.processingSubtext}>
               Transcribing and extracting field updates
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   approveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
   },
   approveButtonText: {
     color: '#fff',

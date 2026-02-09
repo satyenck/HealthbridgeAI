@@ -3,7 +3,7 @@ Encounter Router - Handles all medical encounters and related data
 Replaces consultation_router.py in v2 architecture
 """
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Body
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
@@ -790,8 +790,23 @@ async def download_media_file(
             detail="File not found"
         )
 
-    # Return file
-    return FileResponse(media_file.file_path, filename=media_file.filename)
+    # Read and decrypt file
+    decrypted_content = FileService.read_encrypted_file(file_id, db)
+
+    # Determine content type based on file extension
+    import mimetypes
+    content_type, _ = mimetypes.guess_type(media_file.filename)
+    if content_type is None:
+        content_type = "application/octet-stream"
+
+    # Return decrypted file with appropriate headers
+    return Response(
+        content=decrypted_content,
+        media_type=content_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{media_file.filename}"'
+        }
+    )
 
 
 # ============================================================================

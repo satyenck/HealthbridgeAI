@@ -280,7 +280,7 @@ export const HealthAssistantScreen = ({navigation}: any) => {
           <Icon
             name={isAssistant ? 'smart-toy' : 'person'}
             size={16}
-            color={isAssistant ? '#2196F3' : '#4CAF50'}
+            color={isAssistant ? '#2196F3' : '#00ACC1'}
           />
           <Text style={styles.messageRole}>
             {isAssistant ? 'Health Assistant' : 'You'}
@@ -299,7 +299,11 @@ export const HealthAssistantScreen = ({navigation}: any) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.title}>Review Summary</Text>
+          <View style={styles.logoContainer}>
+            <Icon name="favorite" size={20} color="#fff" />
+          </View>
+          <Text style={styles.title}>HealthbridgeAI</Text>
+          <View style={{flex: 1}} />
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -322,24 +326,55 @@ export const HealthAssistantScreen = ({navigation}: any) => {
           <View style={styles.infoBox}>
             <Icon name="info" size={20} color="#2196F3" />
             <Text style={styles.infoText}>
-              After creating the consultation, our AI will analyze your symptoms and provide
-              preliminary insights. A doctor will review and finalize the report.
+              Choose how you'd like to proceed with your consultation
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={createConsultation}
-            disabled={creating}>
-            {creating ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Icon name="add-circle" size={24} color="#fff" />
-                <Text style={styles.createButtonText}>Create Consultation</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.appointmentButton]}
+              onPress={() => {
+                // Navigate to schedule appointment with symptoms
+                navigation.navigate('NewEncounter', {
+                  encounterType: 'LIVE_VISIT',
+                  symptomsText: editedSummary,
+                });
+              }}
+              disabled={creating}>
+              <Icon name="local-hospital" size={24} color="#fff" />
+              <Text style={styles.actionButtonText}>Schedule In-Person</Text>
+              <Text style={styles.actionButtonSubtext}>Book clinic visit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.videoButton]}
+              onPress={() => {
+                // Navigate to schedule video consultation with symptoms
+                navigation.navigate('ScheduleVideoConsultation', {
+                  symptomsText: editedSummary,
+                });
+              }}
+              disabled={creating}>
+              <Icon name="videocam" size={24} color="#fff" />
+              <Text style={styles.actionButtonText}>Schedule Video Call</Text>
+              <Text style={styles.actionButtonSubtext}>Remote consultation</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.submitButton]}
+              onPress={createConsultation}
+              disabled={creating}>
+              {creating ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Icon name="send" size={24} color="#fff" />
+                  <Text style={styles.actionButtonText}>Submit Symptoms Only</Text>
+                  <Text style={styles.actionButtonSubtext}>Doctor will review</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </View>
     );
@@ -353,13 +388,16 @@ export const HealthAssistantScreen = ({navigation}: any) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.title}>Health Assistant</Text>
-          <View style={{width: 24}} />
+          <View style={styles.logoContainer}>
+            <Icon name="favorite" size={20} color="#fff" />
+          </View>
+          <Text style={styles.title}>HealthbridgeAI</Text>
+          <View style={{flex: 1}} />
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
           <View style={styles.welcomeCard}>
-            <Icon name="health-and-safety" size={48} color="#4CAF50" />
+            <Icon name="health-and-safety" size={48} color="#00ACC1" />
             <Text style={styles.welcomeTitle}>AI Health Assistant</Text>
             <Text style={styles.welcomeText}>
               I'll ask you questions in your preferred language to understand your symptoms better.
@@ -386,7 +424,7 @@ export const HealthAssistantScreen = ({navigation}: any) => {
                 </View>
               </View>
               {selectedLanguage === 'en' && (
-                <Icon name="check-circle" size={24} color="#4CAF50" />
+                <Icon name="check-circle" size={24} color="#00ACC1" />
               )}
             </TouchableOpacity>
 
@@ -404,7 +442,7 @@ export const HealthAssistantScreen = ({navigation}: any) => {
                 </View>
               </View>
               {selectedLanguage === 'gu' && (
-                <Icon name="check-circle" size={24} color="#4CAF50" />
+                <Icon name="check-circle" size={24} color="#00ACC1" />
               )}
             </TouchableOpacity>
 
@@ -422,7 +460,7 @@ export const HealthAssistantScreen = ({navigation}: any) => {
                 </View>
               </View>
               {selectedLanguage === 'hi' && (
-                <Icon name="check-circle" size={24} color="#4CAF50" />
+                <Icon name="check-circle" size={24} color="#00ACC1" />
               )}
             </TouchableOpacity>
           </View>
@@ -454,7 +492,11 @@ export const HealthAssistantScreen = ({navigation}: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Health Assistant</Text>
+        <View style={styles.logoContainer}>
+          <Icon name="favorite" size={20} color="#fff" />
+        </View>
+        <Text style={styles.title}>HealthbridgeAI</Text>
+        <View style={{flex: 1}} />
         <View style={styles.progressBadge}>
           <Text style={styles.progressText}>{questionCount}/6</Text>
         </View>
@@ -465,7 +507,7 @@ export const HealthAssistantScreen = ({navigation}: any) => {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}>
         <View style={styles.welcomeCard}>
-          <Icon name="health-and-safety" size={48} color="#4CAF50" />
+          <Icon name="health-and-safety" size={48} color="#00ACC1" />
           <Text style={styles.welcomeTitle}>AI Health Assistant</Text>
           <Text style={styles.welcomeText}>
             I'll ask you a few questions to understand your symptoms better.
@@ -591,20 +633,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#00ACC1',
     paddingTop: 48,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+  },
+  logoContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 16,
+    marginRight: 10,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#fff',
-    flex: 1,
-    marginLeft: 16,
   },
   progressBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -819,19 +868,41 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     lineHeight: 18,
   },
-  createButton: {
-    backgroundColor: '#4CAF50',
-    flexDirection: 'row',
+  actionButtonsContainer: {
+    gap: 12,
+  },
+  actionButton: {
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: 20,
     borderRadius: 12,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  createButtonText: {
+  appointmentButton: {
+    backgroundColor: '#E64A19',
+  },
+  videoButton: {
+    backgroundColor: '#558B2F',
+  },
+  submitButton: {
+    backgroundColor: '#2196F3',
+  },
+  actionButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+    textAlign: 'center',
+  },
+  actionButtonSubtext: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
   languageSelectorCard: {
     backgroundColor: '#fff',
@@ -868,7 +939,7 @@ const styles = StyleSheet.create({
   },
   languageOptionSelected: {
     backgroundColor: '#E8F5E9',
-    borderColor: '#4CAF50',
+    borderColor: '#00ACC1',
   },
   languageOptionContent: {
     flexDirection: 'row',

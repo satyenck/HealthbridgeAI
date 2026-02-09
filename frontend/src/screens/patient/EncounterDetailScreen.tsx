@@ -466,7 +466,7 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
             <SummaryReportCard
               report={{
                 ...encounter.summary_report!,
-                content: language === 'Gujarati' && translatedContent
+                content: (language === 'gu' || language === 'hi') && translatedContent
                   ? translatedContent
                   : encounter.summary_report!.content
               }}

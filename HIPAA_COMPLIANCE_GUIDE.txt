@@ -1,0 +1,687 @@
+================================================================================
+HIPAA COMPLIANCE GUIDE FOR HEALTHBRIDGEAI
+================================================================================
+
+HIPAA (Health Insurance Portability and Accountability Act) requires protecting
+Protected Health Information (PHI). Your app handles PHI including patient names,
+medical records, diagnoses, prescriptions, etc.
+
+================================================================================
+1. TECHNICAL SAFEGUARDS (Most Critical for Your App)
+================================================================================
+
+A. ENCRYPTION
+-------------
+Current Status: ❌ Not compliant
+- Your app uses HTTP (not HTTPS)
+- Database connections may not be encrypted
+- Data at rest is not encrypted
+
+What to Implement:
+
+1. Add SSL/TLS Certificate (Let's Encrypt - Free):
+
+   sudo apt install certbot python3-certbot-nginx
+   sudo certbot --nginx -d yourdomain.com
+
+2. Force HTTPS in Nginx (/etc/nginx/sites-available/healthbridge):
+
+   server {
+       listen 80;
+       server_name yourdomain.com;
+       return 301 https://$server_name$request_uri;
+   }
+
+   server {
+       listen 443 ssl http2;
+       server_name yourdomain.com;
+
+       ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+       ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+       # Strong SSL configuration
+       ssl_protocols TLSv1.2 TLSv1.3;
+       ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256';
+       ssl_prefer_server_ciphers on;
+
+       # HSTS (force HTTPS)
+       add_header Strict-Transport-Security "max-age=31536000" always;
+   }
+
+3. Database Encryption (app/database.py):
+
+   # Update database connection to use SSL
+   DATABASE_URL = "postgresql://user:pass@host:5432/db?sslmode=require"
+
+   # Enable RDS encryption at rest (in AWS Console)
+   # - Enable encryption for existing RDS instance
+   # - Enable automated backups encryption
+
+4. File Upload Encryption (backend/app/services/encryption.py):
+
+   from cryptography.fernet import Fernet
+   import os
+
+   class EncryptionService:
+       def __init__(self):
+           # Store this key in AWS Secrets Manager, not in code!
+           self.key = os.getenv('ENCRYPTION_KEY')
+           self.cipher = Fernet(self.key.encode())
+
+       def encrypt_file(self, file_data: bytes) -> bytes:
+           return self.cipher.encrypt(file_data)
+
+       def decrypt_file(self, encrypted_data: bytes) -> bytes:
+           return self.cipher.decrypt(encrypted_data)
+
+
+B. ACCESS CONTROLS & AUTHENTICATION
+------------------------------------
+Current Status: ❌ Weak authentication (phone number only, no password)
+
+What to Implement:
+
+1. Multi-Factor Authentication (MFA):
+
+   from twilio.rest import Client
+   import pyotp
+
+   class AuthService:
+       def send_otp(self, phone_number: str):
+           """Send OTP via SMS"""
+           totp = pyotp.TOTP(self.get_user_secret(phone_number))
+           otp = totp.now()
+
+           # Send via Twilio/AWS SNS
+           client = Client(account_sid, auth_token)
+           client.messages.create(
+               body=f"Your HealthbridgeAI OTP is: {otp}",
+               from_='+1234567890',
+               to=phone_number
+           )
+
+       def verify_otp(self, phone_number: str, otp: str) -> bool:
+           """Verify OTP"""
+           totp = pyotp.TOTP(self.get_user_secret(phone_number))
+           return totp.verify(otp, valid_window=1)
+
+2. Role-Based Access Control (RBAC) - Already partially implemented ✅
+
+   Enhance with granular permissions:
+
+   class Permission(str, Enum):
+       READ_OWN_RECORDS = "read:own_records"
+       READ_ALL_RECORDS = "read:all_records"
+       WRITE_MEDICAL_RECORDS = "write:medical_records"
+       PRESCRIBE_MEDICATION = "prescribe:medication"
+       VIEW_PHI = "view:phi"
+       EXPORT_DATA = "export:data"
+
+   # Add to user model
+   class User(Base):
+       permissions = Column(JSON)  # Store list of permissions
+
+3. Session Management:
+
+   # Implement automatic session timeout (15 minutes)
+   JWT_EXPIRY = 900  # 15 minutes
+
+   # Add session tracking
+   class SessionManager:
+       def create_session(self, user_id: str) -> str:
+           session_id = secrets.token_urlsafe(32)
+           # Store in Redis with TTL
+           redis_client.setex(
+               f"session:{session_id}",
+               900,  # 15 minutes
+               json.dumps({"user_id": user_id, "created_at": time.time()})
+           )
+           return session_id
+
+       def validate_session(self, session_id: str) -> bool:
+           """Check if session is valid and extend TTL"""
+           session = redis_client.get(f"session:{session_id}")
+           if session:
+               # Extend TTL on activity
+               redis_client.expire(f"session:{session_id}", 900)
+               return True
+           return False
+
+
+C. AUDIT LOGS (Critical for HIPAA)
+-----------------------------------
+Current Status: ❌ No audit logging
+
+What to Implement:
+
+1. Create audit log model (app/models_v2.py):
+
+   class AuditLog(Base):
+       __tablename__ = "audit_logs"
+
+       log_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+       user_id = Column(UUID(as_uuid=True), nullable=False)
+       action = Column(String, nullable=False)  # VIEW, CREATE, UPDATE, DELETE, EXPORT
+       resource_type = Column(String)  # PATIENT, ENCOUNTER, SUMMARY_REPORT
+       resource_id = Column(UUID(as_uuid=True))
+       ip_address = Column(String)
+       user_agent = Column(String)
+       timestamp = Column(DateTime, default=datetime.utcnow)
+       details = Column(JSON)  # Additional context
+
+2. Decorator for automatic audit logging:
+
+   def audit_log(action: str, resource_type: str):
+       def decorator(func):
+           @wraps(func)
+           async def wrapper(*args, **kwargs):
+               # Get current user and request from context
+               request = kwargs.get('request')
+               current_user = kwargs.get('current_user')
+
+               result = await func(*args, **kwargs)
+
+               # Log the action
+               db = kwargs.get('db')
+               log = AuditLog(
+                   user_id=current_user.user_id,
+                   action=action,
+                   resource_type=resource_type,
+                   ip_address=request.client.host,
+                   user_agent=request.headers.get('user-agent'),
+                   details={"endpoint": request.url.path}
+               )
+               db.add(log)
+               db.commit()
+
+               return result
+           return wrapper
+       return decorator
+
+3. Usage:
+
+   @router.get("/{encounter_id}")
+   @audit_log(action="VIEW", resource_type="ENCOUNTER")
+   async def get_encounter(
+       encounter_id: UUID,
+       current_user: User = Depends(get_current_user),
+       db: Session = Depends(get_db),
+       request: Request = None
+   ):
+       # ... existing code
+
+
+D. DATA BACKUP & RECOVERY
+--------------------------
+What to Implement:
+
+1. Enable automated RDS backups (AWS Console):
+   - Retention period: 30 days minimum
+   - Enable point-in-time recovery
+   - Enable multi-AZ deployment for high availability
+
+2. Encrypted backup script (backup-database.sh):
+
+   #!/bin/bash
+   DATE=$(date +%Y%m%d_%H%M%S)
+   BACKUP_FILE="healthbridge_backup_$DATE.sql.enc"
+
+   # Dump database
+   pg_dump -h healthbridge-db.c70uqi8iycy1.ap-south-1.rds.amazonaws.com \
+     -U healthbridge_adm -d healthbridge_db > /tmp/backup.sql
+
+   # Encrypt backup
+   openssl enc -aes-256-cbc -salt -in /tmp/backup.sql \
+     -out /backup/$BACKUP_FILE -k $BACKUP_ENCRYPTION_KEY
+
+   # Upload to S3 with encryption
+   aws s3 cp /backup/$BACKUP_FILE \
+     s3://healthbridge-backups/ \
+     --server-side-encryption AES256
+
+   # Delete local files
+   rm /tmp/backup.sql /backup/$BACKUP_FILE
+
+   # Cron job: Daily at 2 AM
+   # 0 2 * * * /path/to/backup-database.sh
+
+
+================================================================================
+2. ADMINISTRATIVE SAFEGUARDS
+================================================================================
+
+A. BUSINESS ASSOCIATE AGREEMENTS (BAAs)
+----------------------------------------
+Required with:
+- AWS (for EC2, RDS, S3)
+- Google (for Gemini API - check if they offer BAA)
+- Any SMS provider (Twilio, AWS SNS)
+- Any analytics/monitoring service
+
+Action: Sign BAAs with all third-party services that handle PHI.
+
+
+B. EMPLOYEE TRAINING
+--------------------
+HIPAA Training Checklist:
+
+- [ ] All developers complete HIPAA training annually
+- [ ] Security awareness training (phishing, social engineering)
+- [ ] Incident response procedures
+- [ ] Data breach notification process
+- [ ] Acceptable use policies
+- [ ] Document all training sessions
+
+
+C. RISK ASSESSMENT
+------------------
+Create a Risk Assessment Document:
+
+HealthbridgeAI Risk Assessment
+
+Identified Risks:
+1. Unauthorized access to PHI
+   - Likelihood: Medium
+   - Impact: High
+   - Mitigation: Implement MFA, RBAC, session timeouts
+
+2. Data breach during transmission
+   - Likelihood: High (currently using HTTP)
+   - Impact: Critical
+   - Mitigation: Implement HTTPS/TLS
+
+3. Insider threat
+   - Likelihood: Low
+   - Impact: High
+   - Mitigation: Audit logging, access controls
+
+4. Lost or stolen devices
+   - Likelihood: Medium
+   - Impact: High
+   - Mitigation: Remote wipe, device encryption
+
+5. Third-party data breach
+   - Likelihood: Low
+   - Impact: Critical
+   - Mitigation: BAAs, vendor assessment
+
+[Continue for all identified risks...]
+
+
+================================================================================
+3. PHYSICAL SAFEGUARDS
+================================================================================
+
+A. SERVER SECURITY
+------------------
+For AWS:
+- ✅ Use AWS Virtual Private Cloud (VPC)
+- ✅ Enable AWS CloudTrail for all API calls
+- ✅ Use AWS Security Groups (firewall rules)
+- ✅ Enable AWS GuardDuty (threat detection)
+
+Implementation:
+
+1. Restrict RDS access to only EC2 instance:
+   In AWS Security Group:
+   - RDS Security Group: Allow 5432 from EC2 security group only
+   - EC2 Security Group: Allow 80/443 from 0.0.0.0/0, SSH from your IP only
+
+2. Enable VPC Flow Logs:
+
+   aws ec2 create-flow-logs \
+     --resource-type VPC \
+     --resource-ids vpc-xxxxxx \
+     --traffic-type ALL \
+     --log-destination-type s3 \
+     --log-destination arn:aws:s3:::healthbridge-flow-logs
+
+
+B. WORKSTATION SECURITY
+------------------------
+Workstation Security Policy:
+
+1. All development machines must have:
+   - Full disk encryption enabled
+   - Screen lock after 5 minutes
+   - Antivirus/malware protection
+   - Firewall enabled
+   - Automatic security updates
+
+2. No PHI on local machines:
+   - Use production database only via secure VPN
+   - Use de-identified test data for development
+
+3. Secure credentials:
+   - Use password manager (1Password, LastPass)
+   - Never commit credentials to Git
+   - Rotate credentials every 90 days
+
+
+================================================================================
+4. PRIVACY REQUIREMENTS
+================================================================================
+
+A. PATIENT CONSENT
+------------------
+Implement Consent Management:
+
+1. Add consent model (app/models_v2.py):
+
+   class PatientConsent(Base):
+       __tablename__ = "patient_consents"
+
+       consent_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+       patient_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"))
+       consent_type = Column(String)  # TREATMENT, RESEARCH, MARKETING, DATA_SHARING
+       granted = Column(Boolean, default=False)
+       granted_at = Column(DateTime)
+       revoked_at = Column(DateTime, nullable=True)
+
+2. Consent form in app:
+
+   {
+     "consents": [
+       {
+         "type": "TREATMENT",
+         "text": "I consent to receive medical treatment",
+         "required": true
+       },
+       {
+         "type": "DATA_SHARING",
+         "text": "I consent to share my data with other healthcare providers",
+         "required": false
+       }
+     ]
+   }
+
+
+B. PATIENT RIGHTS
+-----------------
+Implement these features:
+
+1. Right to Access (Patient portal to view all their data)
+2. Right to Amendment (Allow patients to request corrections)
+3. Right to Accounting of Disclosures (Show who accessed their data)
+
+Example implementation:
+
+   @router.get("/my-data-access-log")
+   async def get_my_access_log(
+       current_patient: User = Depends(get_current_patient),
+       db: Session = Depends(get_db)
+   ):
+       """Show patient who accessed their records"""
+       logs = db.query(AuditLog).filter(
+           AuditLog.resource_type == "PATIENT",
+           AuditLog.resource_id == current_patient.user_id,
+           AuditLog.action == "VIEW"
+       ).all()
+
+       return {
+           "access_log": [
+               {
+                   "accessed_by": log.user_id,
+                   "access_time": log.timestamp,
+                   "purpose": log.details.get("purpose")
+               }
+               for log in logs
+           ]
+       }
+
+
+C. MINIMUM NECESSARY RULE
+--------------------------
+Implement Data Masking:
+
+   # Return only necessary fields based on role
+   class PatientProfileResponse(BaseModel):
+       first_name: str
+       last_name: str
+
+       # Sensitive fields only for authorized users
+       date_of_birth: Optional[date] = None
+       phone_number: Optional[str] = None
+
+       class Config:
+           @staticmethod
+           def schema_extra(schema, model):
+               # Hide sensitive fields from schema
+               if not has_permission("VIEW_FULL_PHI"):
+                   schema['properties'].pop('date_of_birth', None)
+                   schema['properties'].pop('phone_number', None)
+
+
+================================================================================
+5. BREACH NOTIFICATION
+================================================================================
+
+Implement Breach Detection & Response:
+
+1. Automated breach detection:
+
+   class BreachDetector:
+       def detect_suspicious_activity(self):
+           """Detect potential breaches"""
+           # 1. Multiple failed login attempts
+           # 2. Mass data export
+           # 3. Access outside normal hours
+           # 4. Geographic anomalies
+           pass
+
+       def notify_breach(self, incident: dict):
+           """Send breach notifications"""
+           # 1. Notify affected patients (within 60 days)
+           # 2. Notify HHS if >500 patients affected
+           # 3. Notify media if required
+           # 4. Document incident
+           pass
+
+2. Incident response plan:
+
+   HIPAA BREACH RESPONSE PLAN
+
+   1. Detection (within 24 hours)
+      - Monitor audit logs
+      - Analyze suspicious activity
+
+   2. Containment (within 48 hours)
+      - Disable compromised accounts
+      - Revoke access
+      - Preserve evidence
+
+   3. Assessment (within 7 days)
+      - Determine scope
+      - Identify affected patients
+      - Calculate risk
+
+   4. Notification (within 60 days)
+      - Notify patients
+      - Notify HHS if required
+      - Notify media if >500 affected
+
+   5. Remediation
+      - Fix vulnerabilities
+      - Update policies
+      - Retrain staff
+
+
+================================================================================
+6. IMPLEMENTATION PRIORITY
+================================================================================
+
+PHASE 1: CRITICAL (Do First) - 2-3 weeks
+-----------------------------------------
+1. ✅ Enable HTTPS (SSL/TLS certificate)
+2. ✅ Database encryption (RDS encryption at rest)
+3. ✅ Add MFA (OTP via SMS)
+4. ✅ Implement audit logging
+5. ✅ Sign AWS BAA
+
+
+PHASE 2: HIGH PRIORITY - 1 month
+---------------------------------
+6. ✅ Automated backups with encryption
+7. ✅ Session management (timeout, logout)
+8. ✅ Access controls (RBAC enhancements)
+9. ✅ Encrypt file uploads
+10. ✅ Security groups (restrict access)
+
+
+PHASE 3: MEDIUM PRIORITY - 2 months
+------------------------------------
+11. ✅ Patient consent management
+12. ✅ Data access logging for patients
+13. ✅ Breach detection system
+14. ✅ Risk assessment documentation
+15. ✅ Privacy policy & Terms of Service
+
+
+PHASE 4: ONGOING
+----------------
+16. ✅ Annual HIPAA training
+17. ✅ Quarterly security audits
+18. ✅ Penetration testing
+19. ✅ Compliance monitoring
+
+
+================================================================================
+7. QUICK WINS (Can Implement Today)
+================================================================================
+
+1. Add security headers to Nginx (/etc/nginx/sites-available/healthbridge):
+
+   add_header X-Frame-Options "SAMEORIGIN" always;
+   add_header X-Content-Type-Options "nosniff" always;
+   add_header X-XSS-Protection "1; mode=block" always;
+   add_header Referrer-Policy "no-referrer-when-downgrade" always;
+
+2. Disable directory listing:
+
+   autoindex off;
+
+3. Hide nginx version:
+
+   server_tokens off;
+
+4. Rate limiting (prevent brute force):
+
+   limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
+
+   location /api/auth/ {
+       limit_req zone=login burst=3 nodelay;
+       proxy_pass http://127.0.0.1:8000;
+   }
+
+
+================================================================================
+8. HIPAA COMPLIANCE CHECKLIST
+================================================================================
+
+TECHNICAL SAFEGUARDS:
+- [ ] HTTPS/TLS encryption for all data in transit
+- [ ] Database encryption at rest
+- [ ] File upload encryption
+- [ ] Multi-factor authentication (MFA)
+- [ ] Strong password requirements
+- [ ] Session timeouts (15 minutes)
+- [ ] Audit logging for all PHI access
+- [ ] Automated backups (encrypted)
+- [ ] Point-in-time recovery enabled
+- [ ] Role-based access control (RBAC)
+
+ADMINISTRATIVE SAFEGUARDS:
+- [ ] Business Associate Agreements (BAAs) signed
+- [ ] HIPAA training completed (annual)
+- [ ] Risk assessment documented
+- [ ] Incident response plan created
+- [ ] Breach notification procedures documented
+- [ ] Workforce clearance procedures
+- [ ] Security policies and procedures documented
+
+PHYSICAL SAFEGUARDS:
+- [ ] Server access restricted (VPC, Security Groups)
+- [ ] Workstation security policy implemented
+- [ ] Full disk encryption on all devices
+- [ ] Screen lock policies enforced
+- [ ] Physical access controls to servers
+
+PRIVACY REQUIREMENTS:
+- [ ] Patient consent management
+- [ ] Privacy policy published
+- [ ] Terms of service published
+- [ ] Patient rights implemented (access, amendment, disclosure)
+- [ ] Minimum necessary rule enforced
+- [ ] De-identification for test data
+
+ORGANIZATIONAL REQUIREMENTS:
+- [ ] HIPAA Security Officer designated
+- [ ] HIPAA Privacy Officer designated
+- [ ] Policies and procedures documented
+- [ ] Employee confidentiality agreements
+- [ ] Vendor management process
+- [ ] Contingency plan for emergencies
+
+
+================================================================================
+9. COST ESTIMATES
+================================================================================
+
+Monthly Recurring Costs:
+- SSL Certificate (Let's Encrypt): $0 (Free)
+- AWS WAF (Web Application Firewall): ~$5-10/month
+- AWS GuardDuty (Threat Detection): ~$5-10/month
+- AWS CloudTrail (Audit Logs): ~$5/month
+- Redis for session management: ~$15-50/month
+- SMS for MFA (Twilio/AWS SNS): $0.0075 per SMS (~$10-50/month depending on volume)
+- Backup storage (S3): ~$5-20/month
+
+One-time Costs:
+- HIPAA training: $50-200 per person
+- Security audit/Penetration testing: $2,000-10,000
+- Legal review (Privacy Policy, ToS): $500-2,000
+- HIPAA compliance consultant: $5,000-20,000 (optional)
+
+Total Monthly: ~$45-150/month
+Total One-time: ~$7,550-32,200
+
+
+================================================================================
+10. RESOURCES
+================================================================================
+
+Official HIPAA Resources:
+- HHS HIPAA Guide: https://www.hhs.gov/hipaa/index.html
+- HIPAA Security Rule: https://www.hhs.gov/hipaa/for-professionals/security/index.html
+- Breach Notification Rule: https://www.hhs.gov/hipaa/for-professionals/breach-notification/index.html
+
+AWS HIPAA Compliance:
+- AWS HIPAA Compliance: https://aws.amazon.com/compliance/hipaa-compliance/
+- AWS BAA: https://aws.amazon.com/compliance/hipaa-eligible-services-reference/
+
+Training:
+- HIPAA Training Courses: https://www.compliancejunction.com/
+- Free HIPAA Training: https://www.hhs.gov/hipaa/for-professionals/training/index.html
+
+Tools:
+- Let's Encrypt (Free SSL): https://letsencrypt.org/
+- OWASP Security Testing Guide: https://owasp.org/www-project-web-security-testing-guide/
+
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Review this guide with your team
+2. Prioritize Phase 1 items (Critical)
+3. Get domain name and SSL certificate
+4. Sign AWS BAA
+5. Implement HTTPS and audit logging
+6. Schedule HIPAA training for all team members
+7. Consider hiring HIPAA compliance consultant for full audit
+
+
+================================================================================
+Document created: 2026-01-21
+For: HealthbridgeAI Application
+================================================================================

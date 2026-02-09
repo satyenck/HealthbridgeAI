@@ -17,12 +17,12 @@ import {authService} from '../../services/authService';
 import {EncounterType, InputMethod, DoctorProfile} from '../../types';
 
 export const NewEncounterScreen = ({route, navigation}: any) => {
-  const {encounterType} = route.params;
+  const {encounterType, symptomsText} = route.params;
   const [creating, setCreating] = useState(false);
   const [selectedInputMethod, setSelectedInputMethod] = useState<InputMethod>(
     InputMethod.VOICE,
   );
-  const [symptoms, setSymptoms] = useState('');
+  const [symptoms, setSymptoms] = useState(symptomsText || '');
   const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorProfile | null>(null);
   const [doctorModalVisible, setDoctorModalVisible] = useState(false);
@@ -57,7 +57,7 @@ export const NewEncounterScreen = ({route, navigation}: any) => {
         return {
           title: 'Live Visit',
           icon: 'local-hospital',
-          color: '#4CAF50',
+          color: '#00ACC1',
           description: 'In-person visit at a healthcare facility',
         };
       case EncounterType.INITIAL_LOG:

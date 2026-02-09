@@ -44,7 +44,7 @@ export const SummaryReportCard: React.FC<SummaryReportCardProps> = ({
         </View>
       )}
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
         {renderSection('Symptoms', report.content.symptoms)}
         {!patientView && (
           <>
@@ -62,7 +62,7 @@ export const SummaryReportCard: React.FC<SummaryReportCardProps> = ({
             </Text>
           </View>
         )}
-      </ScrollView>
+      </View>
 
       {report.updated_at && report.updated_at !== report.created_at && (
         <View style={styles.footer}>
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   content: {
-    maxHeight: 500,
+    // No maxHeight needed - let parent ScrollView handle scrolling
   },
   section: {
     marginBottom: 16,

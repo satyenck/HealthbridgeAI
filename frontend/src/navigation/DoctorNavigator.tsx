@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // Import actual doctor screens
 import {DashboardScreen} from '../screens/doctor/DashboardScreen';
+import {ReportsScreen} from '../screens/doctor/ReportsScreen';
 import {PendingReportsScreen} from '../screens/doctor/PendingReportsScreen';
 import {ReviewedReportsScreen} from '../screens/doctor/ReviewedReportsScreen';
 import {SearchPatientsScreen} from '../screens/doctor/SearchPatientsScreen';
@@ -17,6 +18,10 @@ import {VoiceCallScreen} from '../screens/VoiceCallScreen';
 import {CallReviewScreen} from '../screens/doctor/CallReviewScreen';
 import {DoctorConsultationReviewScreen} from '../screens/doctor/DoctorConsultationReviewScreen';
 import {BulkVitalsRecordScreen} from '../screens/doctor/BulkVitalsRecordScreen';
+import DoctorVideoConsultationsScreen from '../screens/doctor/DoctorVideoConsultationsScreen';
+import VideoCallScreen from '../screens/VideoCallScreen';
+import {PatientMessagesScreen} from '../screens/doctor/PatientMessagesScreen';
+import {MessagesListScreen} from '../screens/doctor/MessagesListScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -30,7 +35,7 @@ const DashboardStack = ({navigation}: any) => {
           <Icon
             name="home"
             size={28}
-            color="#2196F3"
+            color="#00ACC1"
             style={{marginLeft: 15, cursor: 'pointer'}}
             onPress={() => navigation.navigate('DashboardMain')}
           />
@@ -49,7 +54,7 @@ const DashboardStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -83,7 +88,7 @@ const DashboardStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -97,11 +102,50 @@ const DashboardStack = ({navigation}: any) => {
           ),
         }}
       />
+      <Stack.Screen
+        name="VideoConsultations"
+        component={DoctorVideoConsultationsScreen}
+        options={{
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#00ACC1',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                HealthbridgeAI
+              </Text>
+            </View>
+          ),
+        }}
+      />
+      <Stack.Screen
+        name="VideoCallScreen"
+        component={VideoCallScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="Messages"
+        component={MessagesListScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="PatientMessages"
+        component={PatientMessagesScreen}
+        options={{headerShown: false}}
+      />
     </Stack.Navigator>
   );
 };
 
-// Pending reports stack
+// Reports stack
 const ReportsStack = ({navigation}: any) => {
   return (
     <Stack.Navigator
@@ -110,7 +154,7 @@ const ReportsStack = ({navigation}: any) => {
           <Icon
             name="home"
             size={28}
-            color="#2196F3"
+            color="#00ACC1"
             style={{marginLeft: 15, cursor: 'pointer'}}
             onPress={() => navigation.navigate('Dashboard', {screen: 'DashboardMain'})}
           />
@@ -118,8 +162,8 @@ const ReportsStack = ({navigation}: any) => {
       }}
     >
       <Stack.Screen
-        name="PendingReportsMain"
-        component={PendingReportsScreen}
+        name="ReportsMain"
+        component={ReportsScreen}
         options={{
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -127,7 +171,7 @@ const ReportsStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -140,11 +184,6 @@ const ReportsStack = ({navigation}: any) => {
             </View>
           ),
         }}
-      />
-      <Stack.Screen
-        name="ReviewedReports"
-        component={ReviewedReportsScreen}
-        options={{title: 'Reviewed Reports'}}
       />
       <Stack.Screen
         name="ReviewReport"
@@ -174,7 +213,7 @@ const SearchStack = ({navigation}: any) => {
           <Icon
             name="home"
             size={28}
-            color="#2196F3"
+            color="#00ACC1"
             style={{marginLeft: 15, cursor: 'pointer'}}
             onPress={() => navigation.navigate('Dashboard', {screen: 'DashboardMain'})}
           />
@@ -191,7 +230,7 @@ const SearchStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -209,6 +248,11 @@ const SearchStack = ({navigation}: any) => {
         name="PatientTimeline"
         component={PatientTimelineScreen}
         options={{title: 'Patient Timeline'}}
+      />
+      <Stack.Screen
+        name="PatientMessages"
+        component={PatientMessagesScreen}
+        options={{headerShown: false}}
       />
       <Stack.Screen
         name="ReviewReport"
@@ -243,7 +287,7 @@ const PatientsStack = ({navigation}: any) => {
           <Icon
             name="home"
             size={28}
-            color="#2196F3"
+            color="#00ACC1"
             style={{marginLeft: 15, cursor: 'pointer'}}
             onPress={() => navigation.navigate('Dashboard', {screen: 'DashboardMain'})}
           />
@@ -260,7 +304,7 @@ const PatientsStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -278,6 +322,11 @@ const PatientsStack = ({navigation}: any) => {
         name="PatientTimeline"
         component={PatientTimelineScreen}
         options={{title: 'Patient Timeline'}}
+      />
+      <Stack.Screen
+        name="PatientMessages"
+        component={PatientMessagesScreen}
+        options={{headerShown: false}}
       />
       <Stack.Screen
         name="ReviewReport"
@@ -312,7 +361,7 @@ const ProfileStack = ({navigation}: any) => {
           <Icon
             name="home"
             size={28}
-            color="#2196F3"
+            color="#00ACC1"
             style={{marginLeft: 15, cursor: 'pointer'}}
             onPress={() => navigation.navigate('Dashboard', {screen: 'DashboardMain'})}
           />
@@ -329,7 +378,7 @@ const ProfileStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -352,7 +401,7 @@ export const DoctorNavigator = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#4CAF50',
+        tabBarActiveTintColor: '#00ACC1',
         tabBarInactiveTintColor: '#666',
         tabBarStyle: Platform.OS === 'web' ? {display: 'none'} : undefined,
       }}>

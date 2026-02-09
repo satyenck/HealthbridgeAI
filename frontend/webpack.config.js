@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = {
@@ -73,6 +74,17 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'public/index.html'),
       inject: true,
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, 'public'),
+          to: path.resolve(__dirname, 'dist'),
+          globOptions: {
+            ignore: ['**/index.html'], // Don't copy index.html since HtmlWebpackPlugin handles it
+          },
+        },
+      ],
     }),
     new webpack.DefinePlugin({
       __DEV__: JSON.stringify(true),

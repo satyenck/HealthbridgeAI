@@ -128,7 +128,7 @@ export const SendToLabModal: React.FC<SendToLabModalProps> = ({
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#4CAF50" />
+              <ActivityIndicator size="large" color="#00ACC1" />
             </View>
           ) : (
             <ScrollView style={styles.content}>
@@ -164,7 +164,7 @@ export const SendToLabModal: React.FC<SendToLabModalProps> = ({
                 )}
                 {selectedLab && (
                   <View style={styles.selectedBadge}>
-                    <Icon name="check-circle" size={16} color="#4CAF50" />
+                    <Icon name="check-circle" size={16} color="#00ACC1" />
                     <Text style={styles.selectedBadgeText}>
                       {selectedLabName} selected
                     </Text>
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   },
   selectedBadgeText: {
     fontSize: 13,
-    color: '#4CAF50',
+    color: '#00ACC1',
     fontWeight: '600',
     marginLeft: 6,
   },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: 8,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
     alignItems: 'center',
   },
   sendButtonText: {

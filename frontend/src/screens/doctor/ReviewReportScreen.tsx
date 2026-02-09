@@ -26,6 +26,7 @@ import {API_CONFIG, API_ENDPOINTS} from '../../config/api';
 import {SendToLabModal} from '../../components/SendToLabModal';
 import {SendToPharmacyModal} from '../../components/SendToPharmacyModal';
 import {VoiceReportEditorModal} from '../../components/VoiceReportEditorModal';
+import {scheduleConsultation, getConsultationById, VideoConsultation} from '../../services/videoConsultationService';
 
 export const ReviewReportScreen = ({route, navigation}: any) => {
   const {encounterId} = route.params;
@@ -35,6 +36,9 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [patientId, setPatientId] = useState<string | null>(null);
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+  const [videoConsultation, setVideoConsultation] = useState<VideoConsultation | null>(null);
 
   // Form state
   const [symptoms, setSymptoms] = useState('');
@@ -82,6 +86,26 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
 
       if (data.media_files) {
         setMediaFiles(data.media_files);
+      }
+
+      // Extract patient and doctor IDs for video consultation scheduling
+      if (data.encounter) {
+        setPatientId(data.encounter.patient_id);
+        setDoctorId(data.encounter.doctor_id);
+      }
+
+      // Check if there's a video consultation for this encounter
+      try {
+        const {getMyConsultations} = require('../../services/videoConsultationService');
+        const consultations = await getMyConsultations();
+        const linkedConsultation = consultations.find(
+          (c: VideoConsultation) => c.encounter_id === encounterId
+        );
+        if (linkedConsultation) {
+          setVideoConsultation(linkedConsultation);
+        }
+      } catch (error) {
+        console.log('No video consultation found for this encounter');
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load report');
@@ -174,6 +198,87 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
       Alert.alert('Error', error.message || 'Failed to save report');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleScheduleVideoCall = async () => {
+    if (!patientId || !doctorId) {
+      Alert.alert('Error', 'Patient or doctor information not available');
+      return;
+    }
+
+    try {
+      // Get current doctor ID from storage
+      const currentDoctorId = await AsyncStorage.getItem('user_id');
+      if (!currentDoctorId) {
+        Alert.alert('Error', 'Unable to get doctor ID');
+        return;
+      }
+
+      // Schedule for random time tomorrow between 9 AM and 5 PM
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(9, 0, 0, 0);
+
+      // Add random hours (0-7) for time between 9 AM and 5 PM
+      const randomHours = Math.floor(Math.random() * 8);
+      tomorrow.setHours(tomorrow.getHours() + randomHours);
+
+      const scheduledTime = tomorrow.toISOString();
+      const formattedTime = tomorrow.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+
+      const confirmMessage = `Schedule video consultation for ${formattedTime}?\n\nThis will link the consultation to this encounter, so you'll have access to the symptoms and summary report during the call.`;
+
+      if (Platform.OS === 'web') {
+        if (window.confirm(confirmMessage)) {
+          setLoading(true);
+          await scheduleConsultation({
+            doctor_id: currentDoctorId,
+            patient_id: patientId,
+            encounter_id: encounterId,
+            scheduled_start_time: scheduledTime,
+            duration_minutes: 30,
+            patient_notes: symptoms ? `Follow-up for: ${symptoms.substring(0, 100)}${symptoms.length > 100 ? '...' : ''}` : undefined,
+          });
+          Alert.alert('Success', `Video consultation scheduled for ${formattedTime}`);
+          setLoading(false);
+        }
+      } else {
+        Alert.alert('Schedule Video Consultation', confirmMessage, [
+          {text: 'Cancel', style: 'cancel'},
+          {
+            text: 'Schedule',
+            onPress: async () => {
+              try {
+                setLoading(true);
+                await scheduleConsultation({
+                  doctor_id: currentDoctorId,
+                  patient_id: patientId,
+                  encounter_id: encounterId,
+                  scheduled_start_time: scheduledTime,
+                  duration_minutes: 30,
+                  patient_notes: symptoms ? `Follow-up for: ${symptoms.substring(0, 100)}${symptoms.length > 100 ? '...' : ''}` : undefined,
+                });
+                Alert.alert('Success', `Video consultation scheduled for ${formattedTime}`);
+              } catch (error: any) {
+                Alert.alert('Error', error.response?.data?.detail || 'Failed to schedule consultation');
+              } finally {
+                setLoading(false);
+              }
+            },
+          },
+        ]);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to schedule consultation');
+      setLoading(false);
     }
   };
 
@@ -285,7 +390,7 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#00ACC1" />
       </View>
     );
   }
@@ -340,6 +445,26 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
       </View>
 
       <ScrollView style={styles.content}>
+        {/* Video Consultation Info Banner */}
+        {videoConsultation && videoConsultation.status === 'SCHEDULED' && (
+          <View style={styles.videoConsultBanner}>
+            <Icon name="videocam" size={20} color="#2196F3" />
+            <View style={styles.bannerContent}>
+              <Text style={styles.bannerTitle}>Video Consultation Scheduled</Text>
+              <Text style={styles.bannerText}>
+                {new Date(videoConsultation.scheduled_start_time).toLocaleString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Priority Section */}
         {editing ? (
           <View style={styles.formGroup}>
@@ -512,7 +637,7 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
                     <Icon
                       name={isImage ? 'image' : isPDF ? 'picture-as-pdf' : isVideo ? 'videocam' : 'insert-drive-file'}
                       size={40}
-                      color={isImage ? '#4CAF50' : isPDF ? '#f44336' : isVideo ? '#9C27B0' : '#757575'}
+                      color={isImage ? '#00ACC1' : isPDF ? '#f44336' : isVideo ? '#9C27B0' : '#757575'}
                     />
                     <View style={styles.fileInfo}>
                       <Text style={styles.fileName} numberOfLines={1}>
@@ -547,15 +672,48 @@ export const ReviewReportScreen = ({route, navigation}: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* Voice Consultation button */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.voiceCallButton]}
-            onPress={() => navigation.navigate('VoiceCall', {encounterId})}>
-            <Icon name="phone" size={20} color="#fff" />
-            <Text style={styles.voiceCallButtonText}>Start Voice Consultation</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Voice Consultation and Video Call buttons - Doctor only */}
+        {userRole === UserRole.DOCTOR && (
+          <>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.voiceCallButton]}
+                onPress={() => navigation.navigate('VoiceCall', {encounterId})}>
+                <Icon name="phone" size={20} color="#fff" />
+                <Text style={styles.voiceCallButtonText}>Start Voice Consultation</Text>
+              </TouchableOpacity>
+            </View>
+
+            {videoConsultation ? (
+              // Show Join Video Call button if consultation is scheduled
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.videoCallButton]}
+                  onPress={() =>
+                    (navigation as any).navigate('VideoCallScreen', {
+                      consultationId: videoConsultation.consultation_id,
+                    })
+                  }>
+                  <Icon name="videocam" size={20} color="#fff" />
+                  <Text style={styles.videoCallButtonText}>
+                    {videoConsultation.status === 'SCHEDULED' ? '🎥 Join Video Call' : 'View Video Call Details'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // Show Schedule Video Call button if no consultation scheduled
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.videoCallButton]}
+                  onPress={handleScheduleVideoCall}
+                  disabled={!patientId || !doctorId}>
+                  <Icon name="videocam" size={20} color="#fff" />
+                  <Text style={styles.videoCallButtonText}>Schedule Video Call</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
 
       {/* Modals */}
@@ -663,7 +821,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
     paddingTop: 32,
     paddingBottom: 12,
     paddingHorizontal: 16,
@@ -744,8 +902,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priorityButtonActive: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
+    borderColor: '#00ACC1',
   },
   priorityButtonText: {
     fontSize: 14,
@@ -781,7 +939,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -816,10 +974,19 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   voiceCallButton: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
+    borderColor: '#00ACC1',
   },
   voiceCallButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  videoCallButton: {
+    backgroundColor: '#2196F3',
+    borderColor: '#2196F3',
+  },
+  videoCallButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
@@ -894,7 +1061,7 @@ const styles = StyleSheet.create({
   readOnlyLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: '#00ACC1',
     textTransform: 'uppercase',
     marginBottom: 8,
   },
@@ -922,5 +1089,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
+  },
+  videoConsultBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+    gap: 12,
+  },
+  bannerContent: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1976D2',
+    marginBottom: 2,
+  },
+  bannerText: {
+    fontSize: 13,
+    color: '#1976D2',
   },
 });

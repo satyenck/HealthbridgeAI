@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {View, Text, Platform} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -18,6 +18,12 @@ import {VitalsEntryScreen} from '../screens/patient/VitalsEntryScreen';
 import {VitalsReportScreen} from '../screens/patient/VitalsReportScreen';
 import {HealthAssistantScreen} from '../screens/patient/HealthAssistantScreen';
 import {VitalsChartScreen} from '../screens/patient/VitalsChartScreen';
+import ScheduleVideoConsultationScreen from '../screens/patient/ScheduleVideoConsultationScreen';
+import MyVideoConsultationsScreen from '../screens/patient/MyVideoConsultationsScreen';
+import VideoCallScreen from '../screens/VideoCallScreen';
+import {PatientConversationsScreen} from '../screens/patient/PatientConversationsScreen';
+import {DoctorMessagesScreen} from '../screens/patient/DoctorMessagesScreen';
+import messagingService from '../services/messagingService';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -31,7 +37,7 @@ const HomeStack = ({navigation}: any) => {
           <Icon
             name="home"
             size={28}
-            color="#2196F3"
+            color="#00ACC1"
             style={{marginLeft: 15, cursor: 'pointer'}}
             onPress={() => navigation.navigate('HomeMain')}
           />
@@ -50,7 +56,7 @@ const HomeStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -104,7 +110,7 @@ const HomeStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -117,6 +123,40 @@ const HomeStack = ({navigation}: any) => {
             </View>
           ),
         }}
+      />
+      <Stack.Screen
+        name="MyVideoConsultations"
+        component={MyVideoConsultationsScreen}
+        options={{
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#00ACC1',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                HealthbridgeAI
+              </Text>
+            </View>
+          ),
+        }}
+      />
+      <Stack.Screen
+        name="ScheduleVideoConsultation"
+        component={ScheduleVideoConsultationScreen}
+        options={{title: 'Schedule Video Call'}}
+      />
+      <Stack.Screen
+        name="VideoCall"
+        component={VideoCallScreen}
+        options={{headerShown: false}}
       />
     </Stack.Navigator>
   );
@@ -131,7 +171,7 @@ const TimelineStack = ({navigation}: any) => {
           <Icon
             name="home"
             size={28}
-            color="#2196F3"
+            color="#00ACC1"
             style={{marginLeft: 15, cursor: 'pointer'}}
             onPress={() => navigation.navigate('Home', {screen: 'HomeMain'})}
           />
@@ -148,7 +188,7 @@ const TimelineStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -180,7 +220,7 @@ const InsightsStack = ({navigation}: any) => {
           <Icon
             name="home"
             size={28}
-            color="#2196F3"
+            color="#00ACC1"
             style={{marginLeft: 15, cursor: 'pointer'}}
             onPress={() => navigation.navigate('Home', {screen: 'HomeMain'})}
           />
@@ -197,7 +237,7 @@ const InsightsStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -221,7 +261,7 @@ const InsightsStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -248,7 +288,7 @@ const ProfileStack = ({navigation}: any) => {
           <Icon
             name="home"
             size={28}
-            color="#2196F3"
+            color="#00ACC1"
             style={{marginLeft: 15, cursor: 'pointer'}}
             onPress={() => navigation.navigate('Home', {screen: 'HomeMain'})}
           />
@@ -265,7 +305,7 @@ const ProfileStack = ({navigation}: any) => {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#2196F3',
+                backgroundColor: '#00ACC1',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 10,
@@ -283,12 +323,58 @@ const ProfileStack = ({navigation}: any) => {
   );
 };
 
+// Messages stack
+const MessagesStack = ({navigation}: any) => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#00ACC1"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('Home', {screen: 'HomeMain'})}
+          />
+        ) : undefined,
+      }}
+    >
+      <Stack.Screen
+        name="ConversationsList"
+        component={PatientConversationsScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="DoctorMessages"
+        component={DoctorMessagesScreen}
+        options={{headerShown: false}}
+      />
+    </Stack.Navigator>
+  );
+};
+
 export const PatientNavigator = () => {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      try {
+        const count = await messagingService.getUnreadCount();
+        setUnreadCount(count.total_unread);
+      } catch (error) {
+        console.error('[PatientNavigator] Failed to load unread count:', error);
+      }
+    };
+
+    loadUnreadCount();
+    const interval = setInterval(loadUnreadCount, 15000); // Poll every 15 seconds
+    return () => clearInterval(interval);
+  }, []);
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2196F3',
+        tabBarActiveTintColor: '#00ACC1',
         tabBarInactiveTintColor: '#666',
         tabBarStyle: Platform.OS === 'web' ? {display: 'none'} : {
           height: 70,
@@ -328,6 +414,17 @@ export const PatientNavigator = () => {
           tabBarIcon: ({color}) => (
             <Icon name="analytics" size={28} color={color} />
           ),
+        }}
+      />
+      <Tab.Screen
+        name="Messages"
+        component={MessagesStack}
+        options={{
+          tabBarLabel: 'Messages',
+          tabBarIcon: ({color}) => (
+            <Icon name="chat-bubble" size={28} color={color} />
+          ),
+          tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined,
         }}
       />
       <Tab.Screen

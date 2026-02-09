@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#4CAF50',
+    borderLeftColor: '#00ACC1',
   },
   extractedValue: {
     fontSize: 14,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   acceptButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
   },
   acceptText: {
     color: '#fff',
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
   },
   saveText: {
     color: '#fff',

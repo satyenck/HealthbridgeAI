@@ -67,10 +67,32 @@ class OrderStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
 
 
+class VideoConsultationStatus(str, enum.Enum):
+    """Status for video consultations"""
+    SCHEDULED = "SCHEDULED"
+    WAITING = "WAITING"  # Waiting room - patient/doctor can join
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    NO_SHOW = "NO_SHOW"
+
+
 class AccessLevel(str, enum.Enum):
     """Profile sharing access levels"""
     FULL_HISTORY = "FULL_HISTORY"
     SINGLE_ENCOUNTER = "SINGLE_ENCOUNTER"
+
+
+class AuditAction(str, enum.Enum):
+    """HIPAA audit log actions"""
+    VIEW = "VIEW"
+    CREATE = "CREATE"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+    EXPORT = "EXPORT"
+    LOGIN = "LOGIN"
+    LOGOUT = "LOGOUT"
+    ACCESS_DENIED = "ACCESS_DENIED"
 
 
 # ============================================================================
@@ -263,6 +285,61 @@ class Encounter(Base):
     lab_orders = relationship("LabOrder", back_populates="encounter", cascade="all, delete-orphan")
     prescriptions = relationship("Prescription", back_populates="encounter", cascade="all, delete-orphan")
     media_files = relationship("MediaFile", back_populates="encounter", cascade="all, delete-orphan")
+    video_consultation = relationship("VideoConsultation", back_populates="encounter", uselist=False, cascade="all, delete-orphan")
+
+
+class VideoConsultation(Base):
+    """
+    Video consultation appointments and call metadata.
+    Supports scheduled video calls between patient and doctor with recording.
+    """
+    __tablename__ = "video_consultations"
+
+    consultation_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    encounter_id = Column(UUID(as_uuid=True), ForeignKey("encounters.encounter_id"), nullable=False, unique=True, index=True)
+
+    # Scheduling
+    scheduled_start_time = Column(DateTime(timezone=True), nullable=False, index=True)
+    scheduled_end_time = Column(DateTime(timezone=True), nullable=True)
+    duration_minutes = Column(Integer, default=30)  # Expected duration
+
+    # Status tracking
+    status = Column(Enum(VideoConsultationStatus), default=VideoConsultationStatus.SCHEDULED, nullable=False, index=True)
+
+    # Agora video call details
+    channel_name = Column(String(255), nullable=False, unique=True, index=True)  # Unique Agora channel
+    agora_app_id = Column(String(255), nullable=True)
+
+    # Call session tracking
+    actual_start_time = Column(DateTime(timezone=True), nullable=True)
+    actual_end_time = Column(DateTime(timezone=True), nullable=True)
+    patient_joined_at = Column(DateTime(timezone=True), nullable=True)
+    doctor_joined_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Recording
+    recording_sid = Column(String(255), nullable=True)  # Agora cloud recording SID
+    recording_resource_id = Column(String(255), nullable=True)
+    recording_url = Column(Text, nullable=True)  # URL to recorded video
+    recording_duration_seconds = Column(Integer, nullable=True)
+
+    # Transcription (similar to live visit)
+    transcription_text = Column(Text, nullable=True)
+    transcription_status = Column(String(50), nullable=True)  # PENDING, COMPLETED, FAILED
+
+    # Metadata
+    patient_notes = Column(Text, nullable=True)  # Patient's reason for consultation
+    doctor_notes = Column(Text, nullable=True)  # Doctor's notes before/after call
+    cancellation_reason = Column(Text, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    encounter = relationship("Encounter", back_populates="video_consultation")
+
+    def __repr__(self):
+        return f"<VideoConsultation {self.consultation_id} - {self.status.value}>"
 
 
 class VitalsLog(Base):
@@ -604,3 +681,46 @@ class HealthInsightsCache(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     patient = relationship("User", foreign_keys=[patient_id])
+
+
+# ============================================================================
+# AUDIT LOGS (HIPAA Compliance)
+# ============================================================================
+
+class AuditLog(Base):
+    """
+    Comprehensive audit logging for HIPAA compliance.
+    Tracks all access and modifications to PHI (Protected Health Information).
+    """
+    __tablename__ = "audit_logs"
+
+    log_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    
+    # Who performed the action
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False, index=True)
+    
+    # What action was performed
+    action = Column(Enum(AuditAction), nullable=False, index=True)
+    
+    # What resource was accessed/modified
+    resource_type = Column(String(100), nullable=True, index=True)  # PATIENT, ENCOUNTER, SUMMARY_REPORT, etc.
+    resource_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    
+    # Request metadata
+    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
+    user_agent = Column(Text, nullable=True)
+    
+    # Session tracking
+    session_id = Column(String(255), nullable=True, index=True)
+    
+    # Additional context (JSON format)
+    details = Column(JSONB, nullable=True)  # Endpoint, query params, changes made, etc.
+    
+    # Timestamp (immutable)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    
+    def __repr__(self):
+        return f"<AuditLog {self.action} by {self.user_id} on {self.resource_type}:{self.resource_id}>"

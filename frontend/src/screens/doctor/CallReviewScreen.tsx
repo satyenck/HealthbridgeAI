@@ -112,7 +112,7 @@ export const CallReviewScreen: React.FC<CallReviewScreenProps> = ({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#00ACC1" />
         <Text style={styles.loadingText}>Processing consultation...</Text>
         <Text style={styles.loadingSubtext}>
           Transcribing and extracting medical information
@@ -137,7 +137,7 @@ export const CallReviewScreen: React.FC<CallReviewScreenProps> = ({
         {/* Transcription */}
         <View style={styles.transcriptionCard}>
           <View style={styles.transcriptionHeader}>
-            <Icon name="mic" size={20} color="#4CAF50" />
+            <Icon name="mic" size={20} color="#00ACC1" />
             <Text style={styles.transcriptionTitle}>Consultation Transcript</Text>
           </View>
           <Text style={styles.transcriptionText}>{transcription}</Text>
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
   },
   headerTitle: {
     fontSize: 18,
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
   },
   saveButtonText: {
     color: '#fff',

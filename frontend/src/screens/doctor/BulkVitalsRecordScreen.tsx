@@ -245,7 +245,7 @@ export const BulkVitalsRecordScreen: React.FC<BulkVitalsRecordScreenProps> = ({
                   <Icon
                     name={result.success ? 'check-circle' : 'error'}
                     size={24}
-                    color={result.success ? '#4CAF50' : '#F44336'}
+                    color={result.success ? '#00ACC1' : '#F44336'}
                   />
                   <Text style={styles.resultPhone}>{result.phone_number}</Text>
                 </View>
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
   },
   resultSuccess: {
-    borderLeftColor: '#4CAF50',
+    borderLeftColor: '#00ACC1',
   },
   resultError: {
     borderLeftColor: '#F44336',
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   },
   resultMessage: {
     fontSize: 14,
-    color: '#4CAF50',
+    color: '#00ACC1',
     fontWeight: '600',
   },
   resultErrorText: {

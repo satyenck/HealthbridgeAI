@@ -65,7 +65,7 @@ export const LabNavigator = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#9C27B0',
+        tabBarActiveTintColor: '#00ACC1',
         tabBarInactiveTintColor: '#666',
       }}>
       <Tab.Screen

@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   searchButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

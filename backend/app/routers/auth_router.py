@@ -9,8 +9,10 @@ from app.schemas_v2 import (
 from app.auth import create_access_token, get_current_user
 from app.services.google_auth import GoogleAuthService
 from app.services.phone_auth import phone_auth_service
+from app.services.session_manager import get_session_manager
 from datetime import timedelta
 from app.config import settings
+from jose import jwt
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -43,7 +45,7 @@ async def google_login(
             db.refresh(user)
 
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
+        access_token, session_id = create_access_token(
             data={"sub": str(user.user_id), "role": user.role.value},
             expires_delta=access_token_expires
         )
@@ -52,7 +54,8 @@ async def google_login(
             "access_token": access_token,
             "token_type": "bearer",
             "user_id": user.user_id,
-            "role": user.role
+            "role": user.role,
+            "session_id": session_id  # Include session_id for client tracking
         }
 
     except Exception as e:
@@ -115,7 +118,7 @@ async def verify_phone_code(
         db.refresh(user)
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
+    access_token, session_id = create_access_token(
         data={"sub": str(user.user_id), "role": user.role.value},
         expires_delta=access_token_expires
     )
@@ -124,7 +127,8 @@ async def verify_phone_code(
         "access_token": access_token,
         "token_type": "bearer",
         "user_id": user.user_id,
-        "role": user.role
+        "role": user.role,
+        "session_id": session_id
     }
 
 
@@ -194,7 +198,7 @@ async def direct_phone_login(
         )
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
+    access_token, session_id = create_access_token(
         data={"sub": str(user.user_id), "role": user.role.value},
         expires_delta=access_token_expires
     )
@@ -203,5 +207,77 @@ async def direct_phone_login(
         "access_token": access_token,
         "token_type": "bearer",
         "user_id": user.user_id,
-        "role": user.role
+        "role": user.role,
+        "session_id": session_id
     }
+
+from fastapi.security import OAuth2PasswordBearer
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+
+@router.post("/logout")
+async def logout(
+    current_user: User = Depends(get_current_user),
+    token: str = Depends(oauth2_scheme)
+):
+    """
+    Logout user and invalidate current session.
+    Implements HIPAA-compliant session termination.
+    """
+    try:
+        # Decode token to get session_id
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        session_id = payload.get("session_id")
+
+        if session_id:
+            session_manager = get_session_manager()
+            success = session_manager.invalidate_session(session_id)
+
+            if success:
+                return {
+                    "message": "Logged out successfully",
+                    "session_invalidated": True
+                }
+            else:
+                return {
+                    "message": "Session not found or already expired",
+                    "session_invalidated": False
+                }
+        else:
+            # Old token without session_id
+            return {
+                "message": "Logged out (no active session)",
+                "session_invalidated": False
+            }
+
+    except Exception as e:
+        # Even if session invalidation fails, return success for logout
+        return {
+            "message": "Logged out",
+            "session_invalidated": False,
+            "note": "Session may still be active"
+        }
+
+
+@router.post("/logout-all")
+async def logout_all_sessions(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Logout user from all devices by invalidating all sessions.
+    Useful for security incidents or password changes.
+    """
+    try:
+        session_manager = get_session_manager()
+        count = session_manager.invalidate_all_user_sessions(current_user.user_id)
+
+        return {
+            "message": f"Logged out from {count} device(s)",
+            "sessions_invalidated": count
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to logout from all sessions: {str(e)}"
+        )

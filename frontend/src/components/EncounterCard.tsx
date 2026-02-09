@@ -29,7 +29,7 @@ const getEncounterTypeColor = (type: EncounterType): string => {
     case EncounterType.REMOTE_CONSULT:
       return '#2196F3'; // Blue
     case EncounterType.LIVE_VISIT:
-      return '#4CAF50'; // Green
+      return '#00ACC1'; // Green
     case EncounterType.INITIAL_LOG:
       return '#FF9800'; // Orange
     default:
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   doctorLabel: {
     fontSize: 12,
-    color: '#4CAF50',
+    color: '#00ACC1',
     fontWeight: '500',
   },
 });

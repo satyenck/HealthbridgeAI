@@ -50,7 +50,7 @@ export const ManageUsersScreen = () => {
         </View>
       </View>
       <TouchableOpacity onPress={() => handleToggleStatus(item)}>
-        <Icon name={item.is_active ? 'toggle-on' : 'toggle-off'} size={32} color={item.is_active ? '#4CAF50' : '#999'} />
+        <Icon name={item.is_active ? 'toggle-on' : 'toggle-off'} size={32} color={item.is_active ? '#00ACC1' : '#999'} />
       </TouchableOpacity>
     </View>
   );

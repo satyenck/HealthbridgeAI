@@ -38,11 +38,12 @@ export const authService = {
     return response;
   },
 
-  async directPhoneLogin(phoneNumber: string): Promise<LoginResponse> {
+  async directPhoneLogin(phoneNumber: string, role?: string): Promise<LoginResponse> {
     const response = await apiService.post<LoginResponse>(
       API_ENDPOINTS.PHONE_DIRECT_LOGIN,
       {
         phone_number: phoneNumber,
+        role: role || 'PATIENT', // Default to PATIENT if role not specified
       },
     );
     await AsyncStorage.setItem('access_token', response.access_token);

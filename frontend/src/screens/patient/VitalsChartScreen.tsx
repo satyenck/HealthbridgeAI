@@ -336,7 +336,7 @@ export const VitalsChartScreen: React.FC<VitalsChartScreenProps> = ({
       datasets: [
         {
           data: filteredData,
-          color: () => '#4CAF50',
+          color: () => '#00ACC1',
           strokeWidth: 2,
         },
       ],
@@ -353,7 +353,7 @@ export const VitalsChartScreen: React.FC<VitalsChartScreenProps> = ({
         {id: 'temperature', name: 'Temperature', icon: 'thermostat', color: '#FF9800'},
         {id: 'weight', name: 'Weight', icon: 'scale', color: '#9C27B0'},
         {id: 'oxygen_level', name: 'Oxygen Level', icon: 'air', color: '#2196F3'},
-        {id: 'glucose_level', name: 'Blood Sugar', icon: 'bloodtype', color: '#4CAF50'},
+        {id: 'glucose_level', name: 'Blood Sugar', icon: 'bloodtype', color: '#00ACC1'},
       ],
     },
     {
@@ -371,7 +371,7 @@ export const VitalsChartScreen: React.FC<VitalsChartScreenProps> = ({
       metrics: [
         {id: 'total_cholesterol', name: 'Total Cholesterol', icon: 'local-pharmacy', color: '#FFA000'},
         {id: 'ldl', name: 'LDL', icon: 'trending-down', color: '#F57C00'},
-        {id: 'hdl', name: 'HDL', icon: 'trending-up', color: '#388E3C'},
+        {id: 'hdl', name: 'HDL', icon: 'trending-up', color: '#00ACC1'},
         {id: 'triglycerides', name: 'Triglycerides', icon: 'waves', color: '#0288D1'},
       ],
     },
@@ -422,7 +422,7 @@ export const VitalsChartScreen: React.FC<VitalsChartScreenProps> = ({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#00ACC1" />
       </View>
     );
   }
@@ -494,7 +494,7 @@ export const VitalsChartScreen: React.FC<VitalsChartScreenProps> = ({
                   propsForDots: {
                     r: '6',
                     strokeWidth: '2',
-                    stroke: '#4CAF50',
+                    stroke: '#00ACC1',
                   },
                   propsForBackgroundLines: {
                     strokeDasharray: '',
@@ -727,6 +727,6 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#4CAF50',
+    color: '#00ACC1',
   },
 });

@@ -40,7 +40,7 @@ export const StatsScreen = () => {
           <Text style={styles.statLabel}>Pending</Text>
         </View>
         <View style={[styles.statCard, {backgroundColor: '#E8F5E9'}]}>
-          <Icon name="check-circle" size={32} color="#4CAF50" />
+          <Icon name="check-circle" size={32} color="#00ACC1" />
           <Text style={styles.statValue}>{stats?.completed_orders || 0}</Text>
           <Text style={styles.statLabel}>Completed</Text>
         </View>

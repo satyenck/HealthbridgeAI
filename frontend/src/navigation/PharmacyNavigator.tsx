@@ -65,7 +65,7 @@ export const PharmacyNavigator = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#FF9800',
+        tabBarActiveTintColor: '#00ACC1',
         tabBarInactiveTintColor: '#666',
       }}>
       <Tab.Screen

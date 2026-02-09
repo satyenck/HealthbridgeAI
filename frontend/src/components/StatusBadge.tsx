@@ -16,7 +16,7 @@ const getStatusColor = (status: ReportStatus | OrderStatus): string => {
     case 'PENDING_REVIEW':
       return '#FF9800'; // Orange
     case 'REVIEWED':
-      return '#4CAF50'; // Green
+      return '#00ACC1'; // Green
 
     // Order statuses
     case 'SENT':
@@ -24,7 +24,7 @@ const getStatusColor = (status: ReportStatus | OrderStatus): string => {
     case 'RECEIVED':
       return '#FF9800'; // Orange
     case 'COMPLETED':
-      return '#4CAF50'; // Green
+      return '#00ACC1'; // Green
 
     default:
       return '#9E9E9E'; // Gray

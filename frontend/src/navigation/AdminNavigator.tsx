@@ -70,7 +70,7 @@ export const AdminNavigator = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#F44336',
+        tabBarActiveTintColor: '#00ACC1',
         tabBarInactiveTintColor: '#666',
       }}>
       <Tab.Screen

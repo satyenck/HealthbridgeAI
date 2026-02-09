@@ -94,7 +94,7 @@ export const ReviewedReportsScreen = ({navigation}: any) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#00ACC1" />
       </View>
     );
   }

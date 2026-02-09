@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
@@ -22,17 +26,19 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [textInput, setTextInput] = useState('');
+  const [inputMode, setInputMode] = useState<'voice' | 'text'>('text'); // Default to text mode
   const [conversation, setConversation] = useState<
     Array<{role: 'assistant' | 'user'; message: string}>
   >([
     {
       role: 'assistant',
       message:
-        "Hi! I'm your Health Assistant. Tell me about your vital signs like blood pressure, weight, temperature, or blood sugar. You can also mention when you measured them, like 'today' or 'yesterday'.",
+        "Hi! I'm your Health Assistant. Tell me about your vital signs like blood pressure, weight, temperature, or blood sugar. You can type or use voice input.",
     },
   ]);
 
-  // AudioRecorderPlayer is a singleton instance, use it directly
+  const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     // Cleanup on unmount
@@ -41,13 +47,42 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
     };
   }, []);
 
+  const requestMicrophonePermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: 'Microphone Permission',
+            message: 'This app needs access to your microphone to record vitals',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true; // iOS handles permissions differently
+  };
+
   const startRecording = async () => {
     try {
+      // Request permission first
+      const hasPermission = await requestMicrophonePermission();
+      if (!hasPermission) {
+        Alert.alert('Permission Denied', 'Microphone permission is required to record audio');
+        return;
+      }
+
       setIsRecording(true);
       await AudioRecorderPlayer.startRecorder();
     } catch (error) {
       console.error('Failed to start recording:', error);
-      Alert.alert('Error', 'Failed to start recording');
+      Alert.alert('Error', 'Failed to start recording. Make sure microphone permissions are granted.');
       setIsRecording(false);
     }
   };
@@ -58,7 +93,7 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
       setIsRecording(false);
 
       if (result) {
-        await processVitalReport(result);
+        await processVitalReportVoice(result);
       }
     } catch (error) {
       console.error('Failed to stop recording:', error);
@@ -67,7 +102,29 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
     }
   };
 
-  const processVitalReport = async (audioPath: string) => {
+  const sendTextVitals = async () => {
+    if (!textInput.trim()) {
+      return;
+    }
+
+    const userMessage = textInput.trim();
+    setTextInput('');
+
+    // Add user message to conversation
+    setConversation(prev => [
+      ...prev,
+      {role: 'user', message: userMessage},
+    ]);
+
+    // Scroll to bottom
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({animated: true});
+    }, 100);
+
+    await processVitalReportText(userMessage);
+  };
+
+  const processVitalReportVoice = async (audioPath: string) => {
     try {
       setIsProcessing(true);
 
@@ -99,11 +156,86 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
 
       const data = await response.json();
 
-      // Show what the patient said (transcription)
-      if (data.transcribed_text) {
+      // Process response
+      await handleVitalsResponse(data, data.transcribed_text);
+    } catch (error: any) {
+      console.error('Failed to process vitals:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to process your vitals. Please try again.',
+      );
+
+      setConversation(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          message:
+            "I'm sorry, I had trouble processing that. Could you try again?",
+        },
+      ]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const processVitalReportText = async (text: string) => {
+    try {
+      setIsProcessing(true);
+
+      // Get auth token
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        Alert.alert('Error', 'You must be logged in to report vitals');
+        return;
+      }
+
+      // Call health assistant API with text instead of audio
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}${API_ENDPOINTS.HEALTH_ASSISTANT_REPORT_VITALS}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            text_input: text,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      // Process response
+      await handleVitalsResponse(data, null);
+    } catch (error: any) {
+      console.error('Failed to process vitals:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to process your vitals. Please try again.',
+      );
+
+      setConversation(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          message:
+            "I'm sorry, I had trouble processing that. Could you try again?",
+        },
+      ]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleVitalsResponse = async (data: any, transcribedText: string | null) => {
+    try {
+
+      // Show what the patient said (transcription from voice, if available)
+      if (transcribedText) {
         setConversation(prev => [
           ...prev,
-          {role: 'user', message: data.transcribed_text},
+          {role: 'user', message: transcribedText},
         ]);
       }
 
@@ -150,30 +282,25 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
           ]);
         }
       }
-    } catch (error: any) {
-      console.error('Failed to process vitals:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to process your vitals. Please try again.',
-      );
 
-      setConversation(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          message:
-            "I'm sorry, I had trouble processing that. Could you try again?",
-        },
-      ]);
-    } finally {
-      setIsProcessing(false);
+      // Scroll to bottom
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({animated: true});
+      }, 100);
+    } catch (error: any) {
+      console.error('Failed to handle vitals response:', error);
+      throw error;
     }
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
       {/* Conversation */}
       <ScrollView
+        ref={scrollViewRef}
         style={styles.conversation}
         contentContainerStyle={styles.conversationContent}>
         {conversation.map((msg, index) => (
@@ -199,37 +326,95 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
 
         {isProcessing && (
           <View style={styles.processingContainer}>
-            <ActivityIndicator size="small" color="#4CAF50" />
+            <ActivityIndicator size="small" color="#00ACC1" />
             <Text style={styles.processingText}>Processing...</Text>
           </View>
         )}
       </ScrollView>
 
-      {/* Voice Recording Button */}
-      <View style={styles.recordingArea}>
-        <TouchableOpacity
-          style={[
-            styles.recordButton,
-            isRecording && styles.recordButtonActive,
-          ]}
-          onPress={isRecording ? stopRecording : startRecording}
-          disabled={isProcessing}>
-          <Icon
-            name={isRecording ? 'stop' : 'mic'}
-            size={32}
-            color="#fff"
-          />
-        </TouchableOpacity>
+      {/* Input Area */}
+      <View style={styles.inputArea}>
+        {/* Mode Toggle */}
+        <View style={styles.modeToggle}>
+          <TouchableOpacity
+            style={[
+              styles.modeButton,
+              inputMode === 'text' && styles.modeButtonActive,
+            ]}
+            onPress={() => setInputMode('text')}>
+            <Icon name="keyboard" size={20} color={inputMode === 'text' ? '#00ACC1' : '#999'} />
+            <Text style={[styles.modeText, inputMode === 'text' && styles.modeTextActive]}>
+              Type
+            </Text>
+          </TouchableOpacity>
 
-        <Text style={styles.recordingHint}>
-          {isRecording
-            ? 'Tap to stop recording'
-            : 'Tap to start recording'}
-        </Text>
+          <TouchableOpacity
+            style={[
+              styles.modeButton,
+              inputMode === 'voice' && styles.modeButtonActive,
+            ]}
+            onPress={() => setInputMode('voice')}>
+            <Icon name="mic" size={20} color={inputMode === 'voice' ? '#00ACC1' : '#999'} />
+            <Text style={[styles.modeText, inputMode === 'voice' && styles.modeTextActive]}>
+              Voice
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {inputMode === 'text' ? (
+          /* Text Input Mode */
+          <View style={styles.textInputContainer}>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Type your vitals (e.g., BP 120/80, Weight 75kg)"
+              value={textInput}
+              onChangeText={setTextInput}
+              multiline
+              maxLength={500}
+              editable={!isProcessing}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                (!textInput.trim() || isProcessing) && styles.sendButtonDisabled,
+              ]}
+              onPress={sendTextVitals}
+              disabled={!textInput.trim() || isProcessing}>
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Icon name="send" size={24} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          /* Voice Input Mode */
+          <View style={styles.voiceInputContainer}>
+            <TouchableOpacity
+              style={[
+                styles.recordButton,
+                isRecording && styles.recordButtonActive,
+              ]}
+              onPress={isRecording ? stopRecording : startRecording}
+              disabled={isProcessing}>
+              <Icon
+                name={isRecording ? 'stop' : 'mic'}
+                size={32}
+                color="#fff"
+              />
+            </TouchableOpacity>
+
+            <Text style={styles.recordingHint}>
+              {isRecording
+                ? 'Tap to stop recording'
+                : 'Tap to start recording'}
+            </Text>
+          </View>
+        )}
 
         {/* Examples */}
         <View style={styles.examplesContainer}>
-          <Text style={styles.examplesTitle}>Try saying:</Text>
+          <Text style={styles.examplesTitle}>Examples:</Text>
           <Text style={styles.exampleText}>
             • "My blood pressure was 120/80 this morning"
           </Text>
@@ -241,7 +426,7 @@ export const VitalsReportScreen: React.FC<VitalsReportScreenProps> = ({
           </Text>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -267,7 +452,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   userBubble: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
     alignSelf: 'flex-end',
   },
   messageText: {
@@ -294,18 +479,82 @@ const styles = StyleSheet.create({
     color: '#1B5E20',
     marginLeft: 8,
   },
-  recordingArea: {
-    padding: 24,
+  inputArea: {
+    padding: 16,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 4,
+  },
+  modeButton: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  modeButtonActive: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  modeText: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: '#999',
+    fontWeight: '500',
+  },
+  modeTextActive: {
+    color: '#00ACC1',
+    fontWeight: '600',
+  },
+  textInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 16,
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingTop: 10,
+    maxHeight: 100,
+    fontSize: 15,
+    marginRight: 8,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#00ACC1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  voiceInputContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
   },
   recordButton: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
@@ -324,7 +573,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   examplesContainer: {
-    marginTop: 24,
     width: '100%',
   },
   examplesTitle: {

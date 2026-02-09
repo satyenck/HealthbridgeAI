@@ -12,7 +12,7 @@ const getRoleColor = (role: UserRole): string => {
     case UserRole.PATIENT:
       return '#2196F3'; // Blue
     case UserRole.DOCTOR:
-      return '#4CAF50'; // Green
+      return '#00ACC1'; // Green
     case UserRole.LAB:
       return '#9C27B0'; // Purple
     case UserRole.PHARMACY:

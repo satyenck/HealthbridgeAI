@@ -166,7 +166,7 @@ export const DoctorConsultationReviewScreen: React.FC<
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#00ACC1" />
         <Text style={styles.loadingText}>Processing consultation...</Text>
         <Text style={styles.loadingSubtext}>
           Transcribing and generating medical summary
@@ -219,14 +219,14 @@ export const DoctorConsultationReviewScreen: React.FC<
       <ScrollView style={styles.content}>
         {/* Patient Info */}
         <View style={styles.patientCard}>
-          <Icon name="person" size={24} color="#4CAF50" />
+          <Icon name="person" size={24} color="#00ACC1" />
           <Text style={styles.patientName}>{patientName}</Text>
         </View>
 
         {/* Transcription */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Icon name="mic" size={20} color="#4CAF50" />
+            <Icon name="mic" size={20} color="#00ACC1" />
             <Text style={styles.sectionTitle}>Consultation Transcript</Text>
           </View>
           <View style={styles.card}>
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
   },
   headerTitle: {
     fontSize: 18,
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: '#00ACC1',
     marginBottom: 8,
     textTransform: 'uppercase',
   },
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   completeButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
   },
   completeButtonText: {
     color: '#fff',

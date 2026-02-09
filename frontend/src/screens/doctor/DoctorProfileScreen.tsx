@@ -57,7 +57,7 @@ export const DoctorProfileScreen = ({navigation}: any) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#00ACC1" />
       </View>
     );
   }
@@ -112,7 +112,7 @@ export const DoctorProfileScreen = ({navigation}: any) => {
                 <Text style={styles.label}>Associated Doctors</Text>
                 {profile.associated_doctors.map((doctor: any, index: number) => (
                   <View key={doctor.user_id} style={styles.associatedDoctorItem}>
-                    <Icon name="local-hospital" size={20} color="#4CAF50" />
+                    <Icon name="local-hospital" size={20} color="#00ACC1" />
                     <View style={styles.associatedDoctorInfo}>
                       <Text style={styles.associatedDoctorName}>
                         Dr. {doctor.first_name} {doctor.last_name}

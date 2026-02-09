@@ -5,6 +5,7 @@ from typing import List
 from fastapi import UploadFile, HTTPException, status
 from app.models_v2 import MediaFile
 from sqlalchemy.orm import Session
+from app.services.encryption_service import get_encryption_service
 
 
 class FileService:
@@ -74,11 +75,16 @@ class FileService:
         # Full file path
         file_path = os.path.join(cls.UPLOAD_DIR, unique_filename)
 
-        # Save file to disk
+        # Save file to disk with encryption
         try:
             contents = await file.read()
+
+            # Encrypt file contents for HIPAA compliance
+            encryption_service = get_encryption_service()
+            encrypted_contents = encryption_service.encrypt_file(contents)
+
             with open(file_path, "wb") as f:
-                f.write(contents)
+                f.write(encrypted_contents)
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -128,6 +134,41 @@ class FileService:
             )
 
         return media_file.file_path
+
+    @classmethod
+    def read_encrypted_file(cls, file_id: UUID, db: Session) -> bytes:
+        """
+        Read and decrypt an encrypted file
+
+        Args:
+            file_id: UUID of the file to read
+            db: Database session
+
+        Returns:
+            Decrypted file contents as bytes
+
+        Raises:
+            HTTPException: If file not found or decryption fails
+        """
+        # Get file path
+        file_path = cls.get_file_path(file_id, db)
+
+        try:
+            # Read encrypted file from disk
+            with open(file_path, "rb") as f:
+                encrypted_contents = f.read()
+
+            # Decrypt file contents
+            encryption_service = get_encryption_service()
+            decrypted_contents = encryption_service.decrypt_file(encrypted_contents)
+
+            return decrypted_contents
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to read file: {str(e)}"
+            )
 
     @classmethod
     def delete_file(cls, file_id: UUID, db: Session) -> None:

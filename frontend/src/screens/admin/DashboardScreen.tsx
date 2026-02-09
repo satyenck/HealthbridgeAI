@@ -40,7 +40,7 @@ export const DashboardScreen = ({navigation}: any) => {
             <Text style={styles.statLabel}>Patients</Text>
           </View>
           <View style={[styles.statCard, {backgroundColor: '#E8F5E9'}]}>
-            <Icon name="local-hospital" size={32} color="#4CAF50" />
+            <Icon name="local-hospital" size={32} color="#00ACC1" />
             <Text style={styles.statValue}>{stats?.total_doctors || 0}</Text>
             <Text style={styles.statLabel}>Doctors</Text>
           </View>

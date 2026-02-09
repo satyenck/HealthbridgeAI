@@ -288,9 +288,9 @@ export const InsightsScreen = ({navigation}: InsightsScreenProps) => {
         <TouchableOpacity
           style={styles.vitalsChartButton}
           onPress={() => navigation.navigate('VitalsChart')}>
-          <Icon name="show-chart" size={24} color="#4CAF50" />
+          <Icon name="show-chart" size={24} color="#00ACC1" />
           <Text style={styles.vitalsChartButtonText}>View Vitals Charts</Text>
-          <Icon name="chevron-right" size={24} color="#4CAF50" />
+          <Icon name="chevron-right" size={24} color="#00ACC1" />
         </TouchableOpacity>
       </View>
 
@@ -360,7 +360,7 @@ export const InsightsScreen = ({navigation}: InsightsScreenProps) => {
                   key={prescription.prescription_id}
                   style={styles.pendingCard}>
                   <View style={styles.pendingHeader}>
-                    <Icon name="medication" size={20} color="#4CAF50" />
+                    <Icon name="medication" size={20} color="#00ACC1" />
                     <Text style={styles.pendingTitle}>
                       {prescription.medication_name}
                     </Text>
@@ -383,7 +383,7 @@ export const InsightsScreen = ({navigation}: InsightsScreenProps) => {
             <View style={styles.recommendationsCard}>
               {insights.ai_insights.dos.map((item, index) => (
                 <View key={index} style={styles.recommendationItem}>
-                  <Icon name="check-circle" size={20} color="#4CAF50" />
+                  <Icon name="check-circle" size={20} color="#00ACC1" />
                   <Text style={styles.recommendationText}>{item}</Text>
                 </View>
               ))}
@@ -485,45 +485,49 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#F8F9FA',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
   },
   iconButtonActive: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#E9ECEF',
   },
   translateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#F8F9FA',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     minWidth: 90,
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
   },
   translateButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2196F3',
+    color: '#5B7C99',
     marginLeft: 6,
   },
   vitalsChartButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#4CAF50',
+    borderColor: '#E9ECEF',
   },
   vitalsChartButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: '#5B7C99',
     flex: 1,
     marginLeft: 12,
   },
@@ -573,9 +577,11 @@ const styles = StyleSheet.create({
   actionContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F8F9FA',
     padding: 12,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
   },
   actionText: {
     fontSize: 14,
@@ -635,10 +641,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   positiveCard: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
   },
   positiveItem: {
     flexDirection: 'row',

@@ -92,7 +92,7 @@ export const VoiceRecordScreen = ({route, navigation}: any) => {
 
         {recording && !summaryGenerated && (
           <View style={styles.recordingInfo}>
-            <Icon name="check-circle" size={48} color="#4CAF50" />
+            <Icon name="check-circle" size={48} color="#00ACC1" />
             <Text style={styles.recordingSuccessText}>Recording Complete!</Text>
             <Text style={styles.recordingDetails}>
               Duration: {Math.floor(recording.duration / 1000)}s
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   recordingSuccessText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: '#00ACC1',
     marginTop: 16,
   },
   recordingDetails: {

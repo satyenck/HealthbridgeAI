@@ -14,7 +14,7 @@ const getPriorityColor = (priority: Priority): string => {
     case Priority.MEDIUM:
       return '#FF9800'; // Orange
     case Priority.LOW:
-      return '#4CAF50'; // Green
+      return '#00ACC1'; // Green
     default:
       return '#9E9E9E'; // Gray
   }

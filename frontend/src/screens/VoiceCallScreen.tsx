@@ -102,7 +102,7 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
         <TouchableOpacity
           style={styles.languageSelector}
           onPress={() => setShowLanguageModal(true)}>
-          <Icon name="language" size={24} color="#4CAF50" />
+          <Icon name="language" size={24} color="#00ACC1" />
           <View style={styles.languageInfo}>
             <Text style={styles.languageLabel}>Language</Text>
             <Text style={styles.languageName}>
@@ -130,7 +130,7 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
 
           {isProcessing ? (
             <View style={styles.processingContainer}>
-              <ActivityIndicator size="large" color="#4CAF50" />
+              <ActivityIndicator size="large" color="#00ACC1" />
               <Text style={styles.processingText}>Processing recording...</Text>
             </View>
           ) : (
@@ -144,17 +144,17 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
         <View style={styles.tipsCard}>
           <Text style={styles.tipsTitle}>Tips for best results:</Text>
           <View style={styles.tipItem}>
-            <Icon name="check-circle" size={16} color="#4CAF50" />
+            <Icon name="check-circle" size={16} color="#00ACC1" />
             <Text style={styles.tipText}>Speak clearly and naturally</Text>
           </View>
           <View style={styles.tipItem}>
-            <Icon name="check-circle" size={16} color="#4CAF50" />
+            <Icon name="check-circle" size={16} color="#00ACC1" />
             <Text style={styles.tipText}>
               Mention key medical information explicitly
             </Text>
           </View>
           <View style={styles.tipItem}>
-            <Icon name="check-circle" size={16} color="#4CAF50" />
+            <Icon name="check-circle" size={16} color="#00ACC1" />
             <Text style={styles.tipText}>
               Review and edit extracted data afterwards
             </Text>
@@ -193,7 +193,7 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
                     <Text style={styles.languageOptionSubname}>{language.name}</Text>
                   </View>
                   {selectedLanguage === language.code && (
-                    <Icon name="check-circle" size={24} color="#4CAF50" />
+                    <Icon name="check-circle" size={24} color="#00ACC1" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00ACC1',
   },
   cancelButton: {
     padding: 4,

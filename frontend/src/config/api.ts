@@ -10,9 +10,7 @@ const getDevBaseUrl = () => {
 };
 
 export const API_CONFIG = {
-  BASE_URL: __DEV__
-    ? getDevBaseUrl()
-    : 'https://your-production-api.com',
+  BASE_URL: 'https://healthbridgeai.duckdns.org',
   TIMEOUT: 90000, // 90 seconds for AI/translation operations
 };
 

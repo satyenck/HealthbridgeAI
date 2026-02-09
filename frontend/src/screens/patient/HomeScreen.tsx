@@ -6,10 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {EncounterType} from '../../types';
+import messagingService from '../../services/messagingService';
+import {useFocusEffect} from '@react-navigation/native';
 
 const healthTips = [
   {
@@ -28,7 +31,7 @@ const healthTips = [
     icon: 'directions-walk',
     title: 'Stay Active',
     tip: 'Try to get at least 30 minutes of moderate exercise most days of the week.',
-    color: '#4CAF50',
+    color: '#00ACC1',
   },
   {
     icon: 'restaurant',
@@ -52,6 +55,7 @@ const healthTips = [
 
 export const HomeScreen = ({navigation}: any) => {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     // Rotate tips every 10 seconds
@@ -61,6 +65,23 @@ export const HomeScreen = ({navigation}: any) => {
 
     return () => clearInterval(interval);
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUnreadMessages();
+      const interval = setInterval(loadUnreadMessages, 15000); // Poll every 15 seconds
+      return () => clearInterval(interval);
+    }, []),
+  );
+
+  const loadUnreadMessages = async () => {
+    try {
+      const unreadCount = await messagingService.getUnreadCount();
+      setUnreadMessages(unreadCount.total_unread);
+    } catch (error) {
+      console.error('[HomeScreen] Failed to load unread messages:', error);
+    }
+  };
 
   const handleNewEncounter = (type: EncounterType) => {
     navigation.navigate('NewEncounter', {encounterType: type});
@@ -79,24 +100,34 @@ export const HomeScreen = ({navigation}: any) => {
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.multiRemove(['access_token', 'user_id', 'user_role']);
-            navigation.replace('Login');
+    if (Platform.OS === 'web') {
+      // Web uses window.confirm
+      const confirmed = window.confirm('Are you sure you want to logout?');
+      if (confirmed) {
+        await AsyncStorage.multiRemove(['access_token', 'user_id', 'user_role']);
+        navigation.replace('Login');
+      }
+    } else {
+      // Mobile uses Alert.alert
+      Alert.alert(
+        'Logout',
+        'Are you sure you want to logout?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
           },
-        },
-      ],
-    );
+          {
+            text: 'Logout',
+            style: 'destructive',
+            onPress: async () => {
+              await AsyncStorage.multiRemove(['access_token', 'user_id', 'user_role']);
+              navigation.replace('Login');
+            },
+          },
+        ],
+      );
+    }
   };
 
   const currentTip = healthTips[currentTipIndex];
@@ -110,67 +141,71 @@ export const HomeScreen = ({navigation}: any) => {
           </View>
           <Text style={styles.pageTitle}>HealthbridgeAI</Text>
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.navigate('Messages')}>
+              <Icon name="chat-bubble" size={24} color="#00ACC1" />
+              {unreadMessages > 0 && (
+                <View style={styles.headerBadge}>
+                  <Text style={styles.headerBadgeText}>
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleProfile}>
-              <Icon name="person" size={24} color="#2196F3" />
+              <Icon name="person" size={24} color="#5B7C99" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleLogout}>
-              <Icon name="logout" size={24} color="#e74c3c" />
+              <Icon name="logout" size={24} color="#6C757D" />
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* PREVIOUS COLOR SCHEME (for reference/revert):
+            Health Assistant: backgroundColor: '#E1BEE7', icon: '#7B1FA2', title: '#6A1B9A', desc: '#7B1FA2'
+            Vitals Report: backgroundColor: '#C8E6C9', icon: '#00ACC1', title: '#00ACC1', desc: '#00ACC1'
+            Appointments: backgroundColor: '#E1F5FE', icon: '#0277BD', title: '#01579B', desc: '#0277BD'
+        */}
         <TouchableOpacity
-          style={[styles.actionCard, {backgroundColor: '#E1BEE7'}]}
+          style={[styles.actionCard, {backgroundColor: '#FFFFFF'}]}
           onPress={handleHealthAssistant}>
-          <View style={[styles.cardIconContainer, {backgroundColor: '#7B1FA2'}]}>
-            <Icon name="record-voice-over" size={32} color="#fff" />
+          <View style={[styles.cardIconContainer, {backgroundColor: '#F8F9FA'}]}>
+            <Icon name="record-voice-over" size={32} color="#5B7C99" />
           </View>
           <View style={styles.cardContent}>
-            <Text style={[styles.cardTitle, {color: '#6A1B9A'}]}>Talk to Health Assistant</Text>
-            <Text style={[styles.cardDescription, {color: '#7B1FA2'}]}>Get instant AI-powered health guidance</Text>
+            <Text style={[styles.cardTitle, {color: '#2C3E50'}]}>Talk to Health Assistant</Text>
+            <Text style={[styles.cardDescription, {color: '#6C757D'}]}>Get instant AI-powered health guidance</Text>
           </View>
-          <Icon name="chevron-right" size={24} color="#7B1FA2" />
+          <Icon name="chevron-right" size={24} color="#ADB5BD" />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionCard, {backgroundColor: '#C8E6C9'}]}
+          style={[styles.actionCard, {backgroundColor: '#FFFFFF'}]}
           onPress={handleVitalsReport}>
-          <View style={[styles.cardIconContainer, {backgroundColor: '#388E3C'}]}>
-            <Icon name="favorite" size={32} color="#fff" />
+          <View style={[styles.cardIconContainer, {backgroundColor: '#F8F9FA'}]}>
+            <Icon name="favorite" size={32} color="#5B7C99" />
           </View>
           <View style={styles.cardContent}>
-            <Text style={[styles.cardTitle, {color: '#2E7D32'}]}>Report Vitals with AI</Text>
-            <Text style={[styles.cardDescription, {color: '#388E3C'}]}>Record your blood pressure, weight, and more using voice</Text>
+            <Text style={[styles.cardTitle, {color: '#2C3E50'}]}>Report Vitals with AI</Text>
+            <Text style={[styles.cardDescription, {color: '#6C757D'}]}>Record your blood pressure, weight, and more using voice</Text>
           </View>
-          <Icon name="chevron-right" size={24} color="#388E3C" />
+          <Icon name="chevron-right" size={24} color="#ADB5BD" />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionCard, {backgroundColor: '#BBDEFB'}]}
-          onPress={() => handleNewEncounter(EncounterType.REMOTE_CONSULT)}>
-          <View style={[styles.cardIconContainer, {backgroundColor: '#1976D2'}]}>
-            <Icon name="message" size={32} color="#fff" />
+          style={[styles.actionCard, {backgroundColor: '#FFFFFF'}]}
+          onPress={() => navigation.navigate('MyVideoConsultations')}>
+          <View style={[styles.cardIconContainer, {backgroundColor: '#F8F9FA'}]}>
+            <Icon name="event" size={32} color="#5B7C99" />
           </View>
           <View style={styles.cardContent}>
-            <Text style={[styles.cardTitle, {color: '#1565C0'}]}>Send Symptoms</Text>
-            <Text style={[styles.cardDescription, {color: '#1976D2'}]}>Share your symptoms for remote consultation</Text>
+            <Text style={[styles.cardTitle, {color: '#2C3E50'}]}>My Appointments</Text>
+            <Text style={[styles.cardDescription, {color: '#6C757D'}]}>View scheduled video calls and in-person visits</Text>
           </View>
-          <Icon name="chevron-right" size={24} color="#1976D2" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionCard, {backgroundColor: '#FFCCBC'}]}
-          onPress={() => handleNewEncounter(EncounterType.LIVE_VISIT)}>
-          <View style={[styles.cardIconContainer, {backgroundColor: '#E64A19'}]}>
-            <Icon name="local-hospital" size={32} color="#fff" />
-          </View>
-          <View style={styles.cardContent}>
-            <Text style={[styles.cardTitle, {color: '#D84315'}]}>Schedule Appointment</Text>
-            <Text style={[styles.cardDescription, {color: '#E64A19'}]}>Book an in-person visit with a doctor</Text>
-          </View>
-          <Icon name="chevron-right" size={24} color="#E64A19" />
+          <Icon name="chevron-right" size={24} color="#ADB5BD" />
         </TouchableOpacity>
 
         {/* Health Tip Card */}
@@ -208,18 +243,20 @@ export const HomeScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8F9FA',
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 20,
     paddingTop: 16,
     paddingBottom: 16,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
   },
   headerContent: {
     flexDirection: 'row',
@@ -235,32 +272,51 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F8F9FA',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  headerBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#F44336',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  headerBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   logoContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#00ACC1',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2196F3',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   pageTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#333',
+    color: '#2C3E50',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#6C757D',
     marginTop: 4,
   },
   content: {
@@ -274,13 +330,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
     minHeight: 100,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
   },
   cardIconContainer: {
     width: 56,

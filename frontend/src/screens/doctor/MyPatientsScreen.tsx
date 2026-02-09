@@ -52,7 +52,7 @@ export const MyPatientsScreen = ({navigation}: any) => {
       }>
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
-          <Icon name="person" size={48} color="#4CAF50" style={styles.avatar} />
+          <Icon name="person" size={48} color="#00ACC1" style={styles.avatar} />
           <View style={styles.patientInfo}>
             <Text style={styles.patientName}>
               {item.first_name} {item.last_name}
@@ -85,7 +85,7 @@ export const MyPatientsScreen = ({navigation}: any) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#00ACC1" />
       </View>
     );
   }

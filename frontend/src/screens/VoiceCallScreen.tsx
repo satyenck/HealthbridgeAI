@@ -43,8 +43,16 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
     try {
       setIsProcessing(true);
 
+      console.log('[VoiceCall] Recording completed:', {
+        duration: result.duration,
+        size: result.size,
+        uri: result.uri
+      });
+
       // Convert audio to base64
       const audioBase64 = await voiceService.audioToBase64(result.uri);
+      console.log('[VoiceCall] Audio base64 length:', audioBase64.length);
+      console.log('[VoiceCall] Audio base64 size:', (audioBase64.length * 0.75 / 1024).toFixed(2), 'KB');
 
       // Navigate to appropriate review screen
       if (isDoctorConsultation) {
@@ -65,6 +73,7 @@ export const VoiceCallScreen: React.FC<VoiceCallScreenProps> = ({
         });
       }
     } catch (error: any) {
+      console.error('[VoiceCall] Error processing recording:', error);
       Alert.alert('Error', error.message || 'Failed to process recording');
       setIsProcessing(false);
     }

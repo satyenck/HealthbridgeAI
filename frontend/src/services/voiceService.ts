@@ -45,10 +45,13 @@ export const voiceService = {
    * Start recording audio
    */
   async startRecording(): Promise<string> {
+    console.log('[VoiceService] Requesting recording permissions...');
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) {
-      throw new Error('Microphone permission denied');
+      console.error('[VoiceService] Microphone permission denied');
+      throw new Error('Microphone permission denied. Please enable microphone access in settings.');
     }
+    console.log('[VoiceService] Permission granted');
 
     // Use app-specific directory paths
     const RNFS = require('react-native-fs');
@@ -56,6 +59,8 @@ export const voiceService = {
       ios: 'healthbridge_recording.m4a',
       android: `${RNFS.CachesDirectoryPath}/healthbridge_recording.m4a`,
     });
+
+    console.log('[VoiceService] Recording path:', path);
 
     // Proper audio settings for NitroModules
     const audioSet = {
@@ -65,12 +70,19 @@ export const voiceService = {
       AudioEncodingBitRate: 128000,
     };
 
+    console.log('[VoiceService] Audio settings:', audioSet);
+
     recordingStartTime = Date.now();
     const uri = await AudioRecorderPlayer.startRecorder(path, audioSet, false);
-    console.log('Recording started at:', uri);
+    console.log('[VoiceService] Recording started successfully at:', uri);
+
+    let lastPosition = 0;
     AudioRecorderPlayer.addRecordBackListener((e) => {
-      // Log recording progress
-      console.log('Recording position:', e.currentPosition);
+      // Log recording progress every 5 seconds
+      if (e.currentPosition - lastPosition > 5000) {
+        console.log('[VoiceService] Recording progress:', e.currentPosition, 'ms');
+        lastPosition = e.currentPosition;
+      }
     });
 
     return uri;
@@ -80,24 +92,32 @@ export const voiceService = {
    * Stop recording and return recording details
    */
   async stopRecording(): Promise<RecordingResult> {
+    console.log('[VoiceService] Stopping recording...');
     const result = await AudioRecorderPlayer.stopRecorder();
     AudioRecorderPlayer.removeRecordBackListener();
+    console.log('[VoiceService] Recording stopped. File path:', result);
 
     // Calculate duration
     const duration = recordingStartTime > 0 ? Date.now() - recordingStartTime : 0;
+    console.log('[VoiceService] Recording duration:', duration, 'ms');
 
     // Get file stats
     const RNFS = require('react-native-fs');
     const stat = await RNFS.stat(result);
+    console.log('[VoiceService] File size:', stat.size, 'bytes (', (stat.size / 1024).toFixed(2), 'KB)');
 
     // Validate recording
     if (stat.size < 1000) {
-      throw new Error('Recording is too short or empty. Please record for at least 2 seconds.');
+      console.error('[VoiceService] Recording file too small:', stat.size, 'bytes');
+      throw new Error('Recording is too short or empty. Please record for at least 2 seconds and speak clearly.');
     }
 
     if (duration < 2000) {
+      console.error('[VoiceService] Recording duration too short:', duration, 'ms');
       throw new Error('Recording duration must be at least 2 seconds.');
     }
+
+    console.log('[VoiceService] Recording validated successfully');
 
     return {
       uri: result,

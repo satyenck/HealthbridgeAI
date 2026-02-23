@@ -22,6 +22,7 @@ import DoctorVideoConsultationsScreen from '../screens/doctor/DoctorVideoConsult
 import VideoCallScreen from '../screens/VideoCallScreen';
 import {PatientMessagesScreen} from '../screens/doctor/PatientMessagesScreen';
 import {MessagesListScreen} from '../screens/doctor/MessagesListScreen';
+import {DoctorWebLayout} from '../components/DoctorWebLayout';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -396,14 +397,37 @@ const ProfileStack = ({navigation}: any) => {
   );
 };
 
+// Web Stack for nested navigation
+const WebStack = createNativeStackNavigator();
+
+const WebNavigator = () => {
+  return (
+    <WebStack.Navigator screenOptions={{headerShown: false}}>
+      <WebStack.Screen name="WebLayout" component={DoctorWebLayout} />
+      <WebStack.Screen name="PatientTimeline" component={PatientTimelineScreen} />
+      <WebStack.Screen name="ReviewReport" component={ReviewReportScreen} />
+      <WebStack.Screen name="VoiceCall" component={VoiceCallScreen} />
+      <WebStack.Screen name="CallReview" component={CallReviewScreen} />
+      <WebStack.Screen name="DoctorConsultationReview" component={DoctorConsultationReviewScreen} />
+      <WebStack.Screen name="VideoCallScreen" component={VideoCallScreen} />
+      <WebStack.Screen name="PatientMessages" component={PatientMessagesScreen} />
+    </WebStack.Navigator>
+  );
+};
+
 export const DoctorNavigator = () => {
+  // Use web layout for desktop/browser
+  if (Platform.OS === 'web') {
+    return <WebNavigator />;
+  }
+
+  // Use tab navigation for mobile
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#00ACC1',
         tabBarInactiveTintColor: '#666',
-        tabBarStyle: Platform.OS === 'web' ? {display: 'none'} : undefined,
       }}>
       <Tab.Screen
         name="Dashboard"

@@ -13,6 +13,7 @@ import {
   Alert,
   RefreshControl,
   FlatList,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -379,6 +380,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    minHeight: Platform.OS === 'web' ? '100vh' : undefined,
   },
   header: {
     flexDirection: 'row',
@@ -399,6 +401,9 @@ const styles = StyleSheet.create({
   },
   consultationsList: {
     padding: 16,
+    maxWidth: Platform.OS === 'web' ? 800 : undefined,
+    width: '100%',
+    alignSelf: 'center',
   },
   consultationCard: {
     backgroundColor: '#fff',
@@ -548,6 +553,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
     marginTop: 100,
+    maxWidth: Platform.OS === 'web' ? 800 : undefined,
+    width: '100%',
+    alignSelf: 'center',
   },
   emptyIcon: {
     fontSize: 64,

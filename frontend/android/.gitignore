@@ -1,0 +1,5 @@
+
+# Release keystore files - NEVER commit these!
+*.keystore
+!debug.keystore
+keystore.properties

@@ -16,6 +16,32 @@ router = APIRouter(prefix="/api/messages", tags=["Messaging"])
 
 
 # ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def get_user_full_name(user: User) -> str:
+    """Get full name from user's role-specific profile"""
+    if user.role == UserRole.PATIENT:
+        if user.patient_profile:
+            return f"{user.patient_profile.first_name} {user.patient_profile.last_name}"
+    elif user.role == UserRole.DOCTOR:
+        if user.doctor_profile:
+            return f"{user.doctor_profile.first_name} {user.doctor_profile.last_name}"
+    elif user.role == UserRole.DOCTOR_ASSISTANT:
+        if user.doctor_assistant_profile:
+            return f"{user.doctor_assistant_profile.first_name} {user.doctor_assistant_profile.last_name}"
+    elif user.role == UserRole.LAB:
+        if user.lab_profile:
+            return user.lab_profile.business_name
+    elif user.role == UserRole.PHARMACY:
+        if user.pharmacy_profile:
+            return user.pharmacy_profile.business_name
+
+    # Fallback to phone number or email
+    return user.phone_number or user.email or "Unknown User"
+
+
+# ============================================================================
 # SCHEMAS
 # ============================================================================
 
@@ -93,8 +119,8 @@ async def send_message(
         message_id=message.message_id,
         sender_id=message.sender_id,
         recipient_id=message.recipient_id,
-        sender_name=f"{current_user.first_name} {current_user.last_name}",
-        recipient_name=f"{recipient.first_name} {recipient.last_name}",
+        sender_name=get_user_full_name(current_user),
+        recipient_name=get_user_full_name(recipient),
         content=message.content,
         is_read=message.is_read,
         created_at=message.created_at.isoformat()
@@ -133,8 +159,8 @@ async def get_conversation(
             message_id=msg.message_id,
             sender_id=msg.sender_id,
             recipient_id=msg.recipient_id,
-            sender_name=f"{sender.first_name} {sender.last_name}",
-            recipient_name=f"{recipient.first_name} {recipient.last_name}",
+            sender_name=get_user_full_name(sender),
+            recipient_name=get_user_full_name(recipient),
             content=msg.content,
             is_read=msg.is_read,
             created_at=msg.created_at.isoformat()
@@ -183,7 +209,7 @@ async def get_unread_count(
         if sender.user_id not in unread_by_user_map:
             unread_by_user_map[sender.user_id] = {
                 "user_id": sender.user_id,
-                "user_name": f"{sender.first_name} {sender.last_name}",
+                "user_name": get_user_full_name(sender),
                 "user_role": sender.role,
                 "unread_count": 0
             }
@@ -245,7 +271,7 @@ async def get_conversations(
 
         conversations.append(ConversationSummary(
             user_id=user.user_id,
-            user_name=f"{user.first_name} {user.last_name}",
+            user_name=get_user_full_name(user),
             user_role=user.role,
             last_message=last_message.content,
             last_message_time=last_message.created_at.isoformat(),

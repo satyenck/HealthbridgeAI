@@ -34,8 +34,15 @@ export const PatientConversationsScreen: React.FC<PatientConversationsScreenProp
     try {
       const data = await messagingService.getConversations();
       setConversations(data);
-    } catch (error) {
-      console.error('Failed to load conversations:', error);
+    } catch (error: any) {
+      // Only hide 404 errors (endpoint not found), show other errors
+      if (error?.response?.status === 404 || error?.message?.includes('404')) {
+        console.log('[PatientConversations] Messaging endpoints not implemented yet');
+        setConversations([]);
+      } else {
+        console.error('[PatientConversations] Failed to load conversations:', error);
+        setConversations([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

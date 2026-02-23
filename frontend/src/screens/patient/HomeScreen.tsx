@@ -79,7 +79,9 @@ export const HomeScreen = ({navigation}: any) => {
       const unreadCount = await messagingService.getUnreadCount();
       setUnreadMessages(unreadCount.total_unread);
     } catch (error) {
-      console.error('[HomeScreen] Failed to load unread messages:', error);
+      // Silently fail if messaging service is not available
+      console.log('[HomeScreen] Messaging service not available, skipping unread count');
+      setUnreadMessages(0);
     }
   };
 

@@ -18,7 +18,8 @@ from app.routers import (
     pharmacy_router,
     health_assistant_router,
     audit_router,
-    video_consultation_router
+    video_consultation_router,
+    messaging_router
 )
 
 # Database tables created via SQL migration (init_v2_schema.sql)
@@ -58,6 +59,7 @@ app.include_router(pharmacy_router.router)
 app.include_router(health_assistant_router.router)
 app.include_router(audit_router.router)  # HIPAA audit logging
 app.include_router(video_consultation_router.router)  # Video consultations
+app.include_router(messaging_router.router)  # Doctor-patient messaging
 
 
 @app.get("/")

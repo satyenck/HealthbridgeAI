@@ -362,7 +362,9 @@ export const PatientNavigator = () => {
         const count = await messagingService.getUnreadCount();
         setUnreadCount(count.total_unread);
       } catch (error) {
-        console.error('[PatientNavigator] Failed to load unread count:', error);
+        // Silently fail if messaging service is not available
+        console.log('[PatientNavigator] Messaging service not available, skipping unread count');
+        setUnreadCount(0);
       }
     };
 

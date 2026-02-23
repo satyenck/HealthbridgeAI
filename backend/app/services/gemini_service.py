@@ -55,23 +55,63 @@ class GeminiService:
         try:
             # Decode base64 audio
             audio_bytes = base64.b64decode(audio_base64)
+            audio_size = len(audio_bytes)
+            print(f"[Transcription] Audio size: {audio_size} bytes ({audio_size / 1024:.2f} KB)")
+
+            # Validate audio size
+            if audio_size < 1000:
+                raise Exception(f"Audio file too small ({audio_size} bytes). Recording may be empty or corrupted.")
 
             # Create a temporary file for the audio
             with tempfile.NamedTemporaryFile(delete=False, suffix='.m4a') as temp_audio:
                 temp_audio.write(audio_bytes)
                 temp_audio_path = temp_audio.name
 
+            print(f"[Transcription] Temp file created: {temp_audio_path}")
+
             try:
                 # Upload the audio file to Gemini
+                print(f"[Transcription] Uploading to Gemini...")
                 audio_file = genai.upload_file(temp_audio_path)
+                print(f"[Transcription] Upload complete. File name: {audio_file.name}")
 
                 # Use Gemini to transcribe the audio
-                prompt = """Transcribe the audio exactly as spoken.
-                Provide only the transcription text without any additional commentary or formatting.
-                If this is a medical context, maintain medical terminology accurately."""
+                # IMPORTANT: Configure generation to ensure full audio is processed
+                prompt = """Transcribe this entire audio file completely from beginning to end.
 
-                response = self.audio_model.generate_content([prompt, audio_file])
+                CRITICAL INSTRUCTIONS:
+                1. Transcribe EVERY word spoken in the ENTIRE audio file
+                2. Do NOT summarize or skip any part of the audio
+                3. Transcribe from the very beginning to the very end
+                4. If this is a conversation, transcribe ALL dialogue from ALL speakers
+                5. Maintain medical terminology accurately
+                6. Only respond with 'no audio' if there is literally NO speech at all
+
+                Provide the complete verbatim transcription:"""
+
+                # Configure generation settings for longer audio
+                generation_config = {
+                    'temperature': 0.1,  # Lower temperature for more accurate transcription
+                    'top_p': 0.95,
+                    'top_k': 40,
+                    'max_output_tokens': 8192,  # Allow longer transcriptions
+                }
+
+                print(f"[Transcription] Generating content with Gemini...")
+                response = self.audio_model.generate_content(
+                    [prompt, audio_file],
+                    generation_config=generation_config
+                )
                 transcription = response.text.strip()
+                print(f"[Transcription] Result length: {len(transcription)} characters")
+                print(f"[Transcription] First 200 chars: '{transcription[:200]}...'")
+                if len(transcription) > 200:
+                    print(f"[Transcription] Last 200 chars: '...{transcription[-200:]}'")
+
+                # Check for problematic transcriptions
+                if transcription.lower() in ['silence', 'no audio', 'no speech', '']:
+                    print(f"[Transcription WARNING] Got '{transcription}' - audio may be silent or unclear")
+                    raise Exception(f"No speech detected in recording. Please ensure microphone is working and speak clearly during recording.")
 
                 # Clean up the uploaded file
                 genai.delete_file(audio_file.name)
@@ -84,7 +124,7 @@ class GeminiService:
                     os.unlink(temp_audio_path)
 
         except Exception as e:
-            print(f"Transcription error details: {str(e)}")
+            print(f"[Transcription ERROR] {str(e)}")
             raise Exception(f"Transcription failed: {str(e)}")
 
     def generate_summary_report(self, patient_description: str, health_history: str = "", vitals: dict = None, lab_results: dict = None) -> dict:
@@ -122,11 +162,19 @@ Please provide a response in the following JSON format with ALL 7 sections:
 {{
     "symptoms": "Detailed list of identified symptoms with severity",
     "diagnosis": "Possible diagnoses with appropriate medical disclaimers and reasoning",
-    "treatment": "General treatment recommendations and self-care measures",
-    "tests": "Recommended tests, lab work, or imaging (or 'None required' if not applicable)",
-    "prescription": "Prescription recommendations if applicable (or 'None required' if not applicable)",
-    "next_steps": "Recommended actions including when to seek immediate medical attention and follow-up timeline"
+    "treatment": "CONCISE bullet points (2-4 bullets) for treatment recommendations. Format: • Each point on new line",
+    "tests": "CONCISE bullet points (2-4 bullets) for recommended tests. Format: • Test name - reason. Use 'None required' if not applicable",
+    "prescription": "CONCISE bullet points (2-3 bullets) for medications. Format: • Medicine name - dosage - frequency. Use 'None required' if not applicable",
+    "next_steps": "CONCISE bullet points (2-4 bullets) for action items. Format: • Clear action with timeline"
 }}
+
+IMPORTANT FORMATTING:
+- Keep treatment, tests, prescription, and next_steps as brief bullet points
+- Use • symbol for bullets
+- Each bullet on a new line
+- Maximum 2-4 bullets per section
+- Be specific but concise
+- Symptoms and diagnosis can be more detailed
 
 Ensure all fields are filled with meaningful content or explicitly state 'None required' where applicable."""
 
@@ -259,13 +307,18 @@ Provide the response in JSON format with these fields (set to null if not mentio
 {{
     "symptoms": "Updated symptoms if mentioned, else null",
     "diagnosis": "Updated diagnosis if mentioned, else null",
-    "treatment": "Updated treatment if mentioned, else null",
-    "tests": "Updated tests if mentioned, else null",
-    "prescription": "Updated prescription if mentioned, else null",
-    "next_steps": "Updated next steps if mentioned, else null"
+    "treatment": "CONCISE bullet points for treatment. Format: • Each point on new line, else null",
+    "tests": "CONCISE bullet points for tests. Format: • Test name - reason, else null",
+    "prescription": "CONCISE bullet points for medications. Format: • Medicine - dosage - frequency, else null",
+    "next_steps": "CONCISE bullet points for action items. Format: • Clear action with timeline, else null"
 }}
 
-Only include fields that the doctor explicitly mentioned updating."""
+IMPORTANT FORMATTING:
+- Keep treatment, tests, prescription, and next_steps as brief bullet points using • symbol
+- Each bullet on a new line
+- Maximum 2-4 bullets per section
+- Be specific but concise
+- Only include fields the doctor explicitly mentioned updating"""
 
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
@@ -321,14 +374,19 @@ Provide structured output in JSON format:
 {{
     "symptoms": "Patient symptoms discussed (or null if not discussed)",
     "diagnosis": "Diagnosis or differential diagnoses discussed (or null if not discussed)",
-    "treatment": "Treatment plan agreed upon (or null if not discussed)",
-    "tests": "Lab tests or imaging recommended (or null if not discussed)",
-    "prescription": "Medications prescribed or discussed (or null if not discussed)",
-    "next_steps": "Follow-up plan and next steps (or null if not discussed)",
+    "treatment": "CONCISE bullet points for treatment plan. Format: • Each point on new line (or null if not discussed)",
+    "tests": "CONCISE bullet points for tests. Format: • Test name - reason (or null if not discussed)",
+    "prescription": "CONCISE bullet points for medications. Format: • Medicine - dosage - frequency (or null if not discussed)",
+    "next_steps": "CONCISE bullet points for action items. Format: • Clear action with timeline (or null if not discussed)",
     "additional_notes": "Any other important medical notes from conversation (or null if none)"
 }}
 
-Only include fields that were actually discussed in the conversation. Set to null if not mentioned."""
+IMPORTANT FORMATTING:
+- Keep treatment, tests, prescription, and next_steps as brief bullet points using • symbol
+- Each bullet on a new line
+- Maximum 2-4 bullets per section
+- Be specific but concise
+- Set to null if not mentioned in the conversation"""
 
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
 

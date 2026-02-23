@@ -48,7 +48,9 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
       );
       setUnreadMessages(patientUnread ? patientUnread.unread_count : 0);
     } catch (error) {
-      console.error('Failed to load unread messages:', error);
+      // Silently fail if messaging service is not available
+      console.log('[PatientTimeline] Messaging service not available, skipping unread count');
+      setUnreadMessages(0);
     }
   };
 

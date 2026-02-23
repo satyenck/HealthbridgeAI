@@ -724,3 +724,26 @@ class AuditLog(Base):
     
     def __repr__(self):
         return f"<AuditLog {self.action} by {self.user_id} on {self.resource_type}:{self.resource_id}>"
+
+# ============================================================================
+# MESSAGING
+# ============================================================================
+
+class Message(Base):
+    """Messages between users (doctor-patient communication)"""
+    __tablename__ = "messages"
+    
+    message_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sender_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    
+    # Relationships
+    sender = relationship("User", foreign_keys=[sender_id])
+    recipient = relationship("User", foreign_keys=[recipient_id])
+    
+    def __repr__(self):
+        return f"<Message from {self.sender_id} to {self.recipient_id}>"

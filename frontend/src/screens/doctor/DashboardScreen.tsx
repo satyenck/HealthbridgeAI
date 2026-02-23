@@ -41,7 +41,9 @@ export const DashboardScreen = ({navigation}: any) => {
       const unreadCount = await messagingService.getUnreadCount();
       setTotalUnreadMessages(unreadCount.total_unread);
     } catch (error) {
-      console.error('[DashboardScreen] Failed to load unread messages:', error);
+      // Silently fail if messaging service is not available
+      console.log('[DashboardScreen] Messaging service not available, skipping unread count');
+      setTotalUnreadMessages(0);
     }
   };
 

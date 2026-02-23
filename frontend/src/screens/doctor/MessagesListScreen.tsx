@@ -34,8 +34,15 @@ export const MessagesListScreen: React.FC<MessagesListScreenProps> = ({navigatio
       const data = await messagingService.getConversations();
       console.log('[MessagesListScreen] Conversations loaded:', data);
       setConversations(data);
-    } catch (error) {
-      console.error('[MessagesListScreen] Failed to load conversations:', error);
+    } catch (error: any) {
+      // Only hide 404 errors (endpoint not found), show other errors
+      if (error?.response?.status === 404 || error?.message?.includes('404')) {
+        console.log('[MessagesListScreen] Messaging endpoints not implemented yet');
+        setConversations([]);
+      } else {
+        console.error('[MessagesListScreen] Failed to load conversations:', error);
+        setConversations([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

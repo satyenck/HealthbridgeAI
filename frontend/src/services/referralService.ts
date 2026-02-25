@@ -57,48 +57,42 @@ class ReferralService {
    * Create a new referral (Doctor DA refers patient to Doctor DB)
    */
   async createReferral(data: ReferralCreate): Promise<Referral> {
-    const response = await apiService.post(API_ENDPOINTS.REFERRALS, data);
-    return response.data;
+    return await apiService.post(API_ENDPOINTS.REFERRALS, data);
   }
 
   /**
    * Get all referrals made by current doctor (Doctor DA's view)
    */
   async getReferralsMade(): Promise<Referral[]> {
-    const response = await apiService.get(API_ENDPOINTS.REFERRALS_MADE);
-    return response.data;
+    return await apiService.get(API_ENDPOINTS.REFERRALS_MADE);
   }
 
   /**
    * Get all referrals received by current doctor (Doctor DB's view)
    */
   async getReferralsReceived(): Promise<Referral[]> {
-    const response = await apiService.get(API_ENDPOINTS.REFERRALS_RECEIVED);
-    return response.data;
+    return await apiService.get(API_ENDPOINTS.REFERRALS_RECEIVED);
   }
 
   /**
    * Get all referrals for current patient
    */
   async getMyReferrals(): Promise<Referral[]> {
-    const response = await apiService.get(API_ENDPOINTS.REFERRALS_PATIENT);
-    return response.data;
+    return await apiService.get(API_ENDPOINTS.REFERRALS_PATIENT);
   }
 
   /**
    * Get all referrals for a specific patient (for doctors)
    */
   async getPatientReferrals(patientId: string): Promise<Referral[]> {
-    const response = await apiService.get(API_ENDPOINTS.REFERRAL_PATIENT(patientId));
-    return response.data;
+    return await apiService.get(API_ENDPOINTS.REFERRAL_PATIENT(patientId));
   }
 
   /**
    * Get detailed information about a specific referral
    */
   async getReferralDetail(referralId: string): Promise<Referral> {
-    const response = await apiService.get(API_ENDPOINTS.REFERRAL_DETAIL(referralId));
-    return response.data;
+    return await apiService.get(API_ENDPOINTS.REFERRAL_DETAIL(referralId));
   }
 
   /**
@@ -140,8 +134,7 @@ class ReferralService {
    * Get referral statistics for notifications
    */
   async getReferralStats(): Promise<ReferralStats> {
-    const response = await apiService.get(API_ENDPOINTS.REFERRAL_STATS);
-    return response.data;
+    return await apiService.get(API_ENDPOINTS.REFERRAL_STATS);
   }
 
   /**

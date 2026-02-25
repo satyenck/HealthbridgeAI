@@ -50,15 +50,40 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
       const data = view === 'received'
         ? await referralService.getReferralsReceived()
         : await referralService.getReferralsMade();
+      console.log('[DoctorReferralsScreen] Raw response:', data);
+      console.log('[DoctorReferralsScreen] Response type:', typeof data);
+      console.log('[DoctorReferralsScreen] Is array:', Array.isArray(data));
+
+      // Handle case where data is undefined or not an array
+      if (!data || !Array.isArray(data)) {
+        console.error('[DoctorReferralsScreen] Invalid response - not an array:', data);
+        setReferrals([]);
+        if (typeof window !== 'undefined') {
+          alert(`API returned invalid data. You may need to log in again.\n\nView: ${view}\nResponse: ${JSON.stringify(data)}`);
+        }
+        return;
+      }
+
       console.log('[DoctorReferralsScreen] Loaded', data.length, 'referrals');
       setReferrals(data);
     } catch (error: any) {
       console.error('[DoctorReferralsScreen] Failed to load referrals:', error);
       console.error('[DoctorReferralsScreen] Error details:', error.message, error.response);
-      if (typeof window !== 'undefined') {
-        alert(`Failed to load referrals: ${error.message || 'Unknown error'}\n\nView: ${view}`);
+      console.error('[DoctorReferralsScreen] Error response data:', error.response?.data);
+      console.error('[DoctorReferralsScreen] Error response status:', error.response?.status);
+
+      let errorMessage = error.message || 'Unknown error';
+      if (error.response?.status === 401) {
+        errorMessage = 'Session expired. Please log in again.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
       }
-      Alert.alert('Error', `Failed to load referrals (${view}): ${error.message || 'Unknown error'}`);
+
+      if (typeof window !== 'undefined') {
+        alert(`Failed to load referrals: ${errorMessage}\n\nView: ${view}`);
+      }
+      Alert.alert('Error', `Failed to load referrals (${view}): ${errorMessage}`);
+      setReferrals([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

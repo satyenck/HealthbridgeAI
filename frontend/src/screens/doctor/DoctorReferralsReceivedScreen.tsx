@@ -28,6 +28,7 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted'>('all');
+  const [view, setView] = useState<'received' | 'made'>('received');
 
   // Modal states
   const [selectedReferral, setSelectedReferral] = useState<Referral | null>(null);
@@ -39,12 +40,14 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
 
   useEffect(() => {
     loadReferrals();
-  }, []);
+  }, [view]);
 
   const loadReferrals = async () => {
     try {
       setLoading(true);
-      const data = await referralService.getReferralsReceived();
+      const data = view === 'received'
+        ? await referralService.getReferralsReceived()
+        : await referralService.getReferralsMade();
       setReferrals(data);
     } catch (error) {
       console.error('Failed to load referrals:', error);
@@ -200,6 +203,26 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* View Toggle (Received / Made) */}
+      <View style={styles.viewToggleContainer}>
+        <TouchableOpacity
+          style={[styles.viewToggleButton, view === 'received' && styles.viewToggleButtonActive]}
+          onPress={() => setView('received')}
+        >
+          <Text style={[styles.viewToggleText, view === 'received' && styles.viewToggleTextActive]}>
+            Received
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.viewToggleButton, view === 'made' && styles.viewToggleButtonActive]}
+          onPress={() => setView('made')}
+        >
+          <Text style={[styles.viewToggleText, view === 'made' && styles.viewToggleTextActive]}>
+            Made
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Filter Tabs */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
@@ -235,7 +258,7 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
         renderItem={({ item }) => (
           <ReferralCard
             referral={item}
-            viewType="received"
+            viewType={view === 'received' ? 'received' : 'made'}
             onPress={() => handleReferralPress(item)}
           />
         )}
@@ -352,6 +375,33 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  viewToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    padding: 8,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  viewToggleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+  },
+  viewToggleButtonActive: {
+    backgroundColor: '#00695C',
+  },
+  viewToggleText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#666',
+  },
+  viewToggleTextActive: {
+    color: '#FFFFFF',
   },
   filterContainer: {
     flexDirection: 'row',

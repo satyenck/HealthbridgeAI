@@ -23,6 +23,8 @@ import VideoCallScreen from '../screens/VideoCallScreen';
 import {PatientMessagesScreen} from '../screens/doctor/PatientMessagesScreen';
 import {MessagesListScreen} from '../screens/doctor/MessagesListScreen';
 import {DoctorWebLayout} from '../components/DoctorWebLayout';
+import DoctorReferralsReceivedScreen from '../screens/doctor/DoctorReferralsReceivedScreen';
+import DoctorReferralsMadeScreen from '../screens/doctor/DoctorReferralsMadeScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -397,6 +399,61 @@ const ProfileStack = ({navigation}: any) => {
   );
 };
 
+// Referrals stack (NEW - Doctor referral system)
+const ReferralsStack = ({navigation}: any) => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerLeft: Platform.OS === 'web' ? () => (
+          <Icon
+            name="home"
+            size={28}
+            color="#00ACC1"
+            style={{marginLeft: 15, cursor: 'pointer'}}
+            onPress={() => navigation.navigate('Dashboard', {screen: 'DashboardMain'})}
+          />
+        ) : undefined,
+      }}
+    >
+      <Stack.Screen
+        name="ReferralsReceived"
+        component={DoctorReferralsReceivedScreen}
+        options={{
+          title: 'Received Referrals',
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#00ACC1',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                Referrals
+              </Text>
+            </View>
+          ),
+        }}
+      />
+      <Stack.Screen
+        name="ReferralsMade"
+        component={DoctorReferralsMadeScreen}
+        options={{title: 'My Referrals'}}
+      />
+      <Stack.Screen
+        name="PatientTimeline"
+        component={PatientTimelineScreen}
+        options={{title: 'Patient Timeline'}}
+      />
+    </Stack.Navigator>
+  );
+};
+
 // Web Stack for nested navigation
 const WebStack = createNativeStackNavigator();
 
@@ -411,6 +468,8 @@ const WebNavigator = () => {
       <WebStack.Screen name="DoctorConsultationReview" component={DoctorConsultationReviewScreen} />
       <WebStack.Screen name="VideoCallScreen" component={VideoCallScreen} />
       <WebStack.Screen name="PatientMessages" component={PatientMessagesScreen} />
+      <WebStack.Screen name="ReferralsReceived" component={DoctorReferralsReceivedScreen} />
+      <WebStack.Screen name="ReferralsMade" component={DoctorReferralsMadeScreen} />
     </WebStack.Navigator>
   );
 };
@@ -466,6 +525,16 @@ export const DoctorNavigator = () => {
           tabBarLabel: 'Patients',
           tabBarIcon: ({color, size}) => (
             <Icon name="people" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Referrals"
+        component={ReferralsStack}
+        options={{
+          tabBarLabel: 'Referrals',
+          tabBarIcon: ({color, size}) => (
+            <Icon name="sync-alt" size={size} color={color} />
           ),
         }}
       />

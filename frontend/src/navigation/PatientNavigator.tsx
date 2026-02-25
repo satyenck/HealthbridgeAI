@@ -24,6 +24,8 @@ import VideoCallScreen from '../screens/VideoCallScreen';
 import {PatientConversationsScreen} from '../screens/patient/PatientConversationsScreen';
 import {DoctorMessagesScreen} from '../screens/patient/DoctorMessagesScreen';
 import messagingService from '../services/messagingService';
+import PatientReferralsScreen from '../screens/patient/PatientReferralsScreen';
+import referralService from '../services/referralService';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -157,6 +159,31 @@ const HomeStack = ({navigation}: any) => {
         name="VideoCall"
         component={VideoCallScreen}
         options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="MyReferrals"
+        component={PatientReferralsScreen}
+        options={{
+          title: 'My Referrals',
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#00ACC1',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                My Referrals
+              </Text>
+            </View>
+          ),
+        }}
       />
     </Stack.Navigator>
   );

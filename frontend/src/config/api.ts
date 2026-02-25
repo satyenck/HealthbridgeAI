@@ -123,4 +123,19 @@ export const API_ENDPOINTS = {
   HEALTH_ASSISTANT_INTERVIEW: '/api/health-assistant/interview',
   HEALTH_ASSISTANT_REPORT_VITALS: '/api/health-assistant/report-vitals',
   BULK_VITALS_RECORD: '/api/health-assistant/bulk-vitals-record',
+
+  // ============================================================================
+  // REFERRALS (Doctor-to-Doctor)
+  // ============================================================================
+  REFERRALS: '/api/referrals/',
+  REFERRALS_MADE: '/api/referrals/my-referrals-made',
+  REFERRALS_RECEIVED: '/api/referrals/my-referrals-received',
+  REFERRALS_PATIENT: '/api/referrals/my-referrals',
+  REFERRAL_DETAIL: (id: string) => `/api/referrals/${id}`,
+  REFERRAL_PATIENT: (patientId: string) => `/api/referrals/patient/${patientId}`,
+  REFERRAL_ACCEPT: (id: string) => `/api/referrals/${id}/accept`,
+  REFERRAL_DECLINE: (id: string) => `/api/referrals/${id}/decline`,
+  REFERRAL_LINK_APPOINTMENT: (id: string) => `/api/referrals/${id}/link-appointment`,
+  REFERRAL_COMPLETE: (id: string) => `/api/referrals/${id}/complete`,
+  REFERRAL_STATS: '/api/referrals/stats/summary',
 };

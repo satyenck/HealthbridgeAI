@@ -95,6 +95,16 @@ class AuditAction(str, enum.Enum):
     ACCESS_DENIED = "ACCESS_DENIED"
 
 
+class ReferralStatus(str, enum.Enum):
+    """Doctor referral workflow states"""
+    PENDING = "PENDING"
+    ACCEPTED = "ACCEPTED"
+    APPOINTMENT_SCHEDULED = "APPOINTMENT_SCHEDULED"
+    COMPLETED = "COMPLETED"
+    DECLINED = "DECLINED"
+    CANCELLED = "CANCELLED"
+
+
 # ============================================================================
 # CORE TABLES
 # ============================================================================
@@ -732,7 +742,7 @@ class AuditLog(Base):
 class Message(Base):
     """Messages between users (doctor-patient communication)"""
     __tablename__ = "messages"
-    
+
     message_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     sender_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
     recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
@@ -740,10 +750,68 @@ class Message(Base):
     is_read = Column(Boolean, default=False, nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    
+
     # Relationships
     sender = relationship("User", foreign_keys=[sender_id])
     recipient = relationship("User", foreign_keys=[recipient_id])
-    
+
     def __repr__(self):
         return f"<Message from {self.sender_id} to {self.recipient_id}>"
+
+
+class Referral(Base):
+    """
+    Doctor-to-doctor patient referrals.
+    Enables referring doctor (DA) to refer patient (P) to specialist doctor (DB).
+    Tracks referral status, appointment booking, and outcome.
+    """
+    __tablename__ = "referrals"
+
+    referral_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+
+    # Core referral information
+    patient_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    referring_doctor_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    referred_to_doctor_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Referral details
+    reason = Column(Text, nullable=False)  # Why referring
+    clinical_notes = Column(Text, nullable=True)  # Clinical context
+    priority = Column(String(20), default='MEDIUM')  # HIGH, MEDIUM, LOW
+    specialty_needed = Column(String(100), nullable=True)  # Cardiology, etc.
+
+    # Source encounter (what prompted referral)
+    source_encounter_id = Column(UUID(as_uuid=True), ForeignKey("encounters.encounter_id", ondelete="SET NULL"), nullable=True)
+
+    # Status tracking
+    status = Column(Enum(ReferralStatus), default=ReferralStatus.PENDING, nullable=False, index=True)
+
+    # Appointment tracking
+    appointment_encounter_id = Column(UUID(as_uuid=True), ForeignKey("encounters.encounter_id", ondelete="SET NULL"), nullable=True)
+    appointment_scheduled_time = Column(DateTime(timezone=True), nullable=True)
+    appointment_completed_time = Column(DateTime(timezone=True), nullable=True)
+
+    # Response from referred-to doctor
+    referred_doctor_notes = Column(Text, nullable=True)
+    accepted_at = Column(DateTime(timezone=True), nullable=True)
+    declined_at = Column(DateTime(timezone=True), nullable=True)
+    declined_reason = Column(Text, nullable=True)
+
+    # Notifications tracking
+    patient_notified = Column(Boolean, default=False, nullable=False)
+    patient_viewed_at = Column(DateTime(timezone=True), nullable=True)
+    referred_doctor_viewed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationships
+    patient = relationship("User", foreign_keys=[patient_id])
+    referring_doctor = relationship("User", foreign_keys=[referring_doctor_id])
+    referred_to_doctor = relationship("User", foreign_keys=[referred_to_doctor_id])
+    source_encounter = relationship("Encounter", foreign_keys=[source_encounter_id])
+    appointment_encounter = relationship("Encounter", foreign_keys=[appointment_encounter_id])
+
+    def __repr__(self):
+        return f"<Referral {self.referral_id} - {self.status.value}>"

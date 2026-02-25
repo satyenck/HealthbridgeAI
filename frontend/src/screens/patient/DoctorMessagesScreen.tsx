@@ -44,11 +44,27 @@ export const DoctorMessagesScreen: React.FC<DoctorMessagesScreenProps> = ({
   const loadMessages = async () => {
     try {
       const data = await messagingService.getConversation(doctorId);
-      setMessages(data);
-      // Mark as read
-      await messagingService.markConversationAsRead(doctorId);
-    } catch (error) {
+      setMessages(data || []); // Handle null/undefined response
+      // Mark as read if there are messages
+      if (data && data.length > 0) {
+        try {
+          await messagingService.markConversationAsRead(doctorId);
+        } catch (error) {
+          // Silently fail marking as read
+          console.log('Could not mark as read:', error);
+        }
+      }
+    } catch (error: any) {
       console.error('Failed to load messages:', error);
+      // If it's a 404 or empty conversation, just set empty array
+      // This is normal for first-time conversations
+      if (error.response?.status === 404 || error.response?.status === 400) {
+        setMessages([]);
+      } else {
+        // For other errors, still set empty array but log the error
+        console.error('Unexpected error loading messages:', error);
+        setMessages([]);
+      }
     } finally {
       setLoading(false);
     }

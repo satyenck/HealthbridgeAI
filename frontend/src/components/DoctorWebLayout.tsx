@@ -10,6 +10,7 @@ import { BulkVitalsRecordScreen } from '../screens/doctor/BulkVitalsRecordScreen
 import DoctorVideoConsultationsScreen from '../screens/doctor/DoctorVideoConsultationsScreen';
 import { MessagesListScreen } from '../screens/doctor/MessagesListScreen';
 import { DoctorProfileScreen } from '../screens/doctor/DoctorProfileScreen';
+import DoctorReferralsReceivedScreen from '../screens/doctor/DoctorReferralsReceivedScreen';
 import messagingService from '../services/messagingService';
 import { authService } from '../services/authService';
 
@@ -108,6 +109,13 @@ export const DoctorWebLayout: React.FC<DoctorWebLayoutProps> = () => {
       icon: 'mic',
       iconColor: '#E91E63',
       component: BulkVitalsRecordScreen,
+    },
+    {
+      id: 'referrals',
+      title: 'Referrals',
+      icon: 'sync-alt',
+      iconColor: '#00695C',
+      component: DoctorReferralsReceivedScreen,
     },
     {
       id: 'messages',

@@ -18,7 +18,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import referralService, { ReferralCreate } from '../services/referralService';
-import doctorService from '../services/doctorService';
+import { doctorService } from '../services/doctorService';
 
 interface CreateReferralModalProps {
   visible: boolean;
@@ -84,13 +84,20 @@ const CreateReferralModal: React.FC<CreateReferralModalProps> = ({
   const loadDoctors = async () => {
     try {
       setLoadingDoctors(true);
+      console.log('[CreateReferralModal] Loading doctors...');
       // Search for all doctors (empty query returns all)
       const response = await doctorService.searchDoctors('');
+      console.log('[CreateReferralModal] Doctors loaded:', response.length, 'doctors');
+      console.log('[CreateReferralModal] Doctors:', response);
       setDoctors(response);
       setFilteredDoctors(response);
-    } catch (error) {
-      console.error('Failed to load doctors:', error);
-      Alert.alert('Error', 'Failed to load doctors list');
+    } catch (error: any) {
+      console.error('[CreateReferralModal] Failed to load doctors:', error);
+      console.error('[CreateReferralModal] Error details:', error.message, error.response);
+      if (typeof window !== 'undefined') {
+        alert('Failed to load doctors: ' + (error.message || 'Unknown error'));
+      }
+      Alert.alert('Error', 'Failed to load doctors list: ' + (error.message || 'Unknown error'));
     } finally {
       setLoadingDoctors(false);
     }

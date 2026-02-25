@@ -24,7 +24,6 @@ import {PatientMessagesScreen} from '../screens/doctor/PatientMessagesScreen';
 import {MessagesListScreen} from '../screens/doctor/MessagesListScreen';
 import {DoctorWebLayout} from '../components/DoctorWebLayout';
 import DoctorReferralsReceivedScreen from '../screens/doctor/DoctorReferralsReceivedScreen';
-import DoctorReferralsMadeScreen from '../screens/doctor/DoctorReferralsMadeScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -416,10 +415,10 @@ const ReferralsStack = ({navigation}: any) => {
       }}
     >
       <Stack.Screen
-        name="ReferralsReceived"
+        name="ReferralsMain"
         component={DoctorReferralsReceivedScreen}
         options={{
-          title: 'Received Referrals',
+          title: 'Referrals',
           headerTitle: () => (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
               <View style={{
@@ -439,11 +438,6 @@ const ReferralsStack = ({navigation}: any) => {
             </View>
           ),
         }}
-      />
-      <Stack.Screen
-        name="ReferralsMade"
-        component={DoctorReferralsMadeScreen}
-        options={{title: 'My Referrals'}}
       />
       <Stack.Screen
         name="PatientTimeline"
@@ -468,8 +462,7 @@ const WebNavigator = () => {
       <WebStack.Screen name="DoctorConsultationReview" component={DoctorConsultationReviewScreen} />
       <WebStack.Screen name="VideoCallScreen" component={VideoCallScreen} />
       <WebStack.Screen name="PatientMessages" component={PatientMessagesScreen} />
-      <WebStack.Screen name="ReferralsReceived" component={DoctorReferralsReceivedScreen} />
-      <WebStack.Screen name="ReferralsMade" component={DoctorReferralsMadeScreen} />
+      <WebStack.Screen name="ReferralsMain" component={DoctorReferralsReceivedScreen} />
     </WebStack.Navigator>
   );
 };

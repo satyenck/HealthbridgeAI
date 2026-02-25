@@ -138,7 +138,18 @@
       "Bash($ANDROID_HOME/platform-tools/adb logcat -d)",
       "Bash(~/Library/Android/sdk/platform-tools/adb logcat -d)",
       "Bash(~/Library/Android/sdk/platform-tools/adb shell input text \"RR\")",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm run build:web:*)",
+      "Bash(tar:*)",
+      "Bash($ANDROID_HOME/platform-tools/adb shell \"curl -s -I https://healthbridgeai.duckdns.org/api/health | head -5\")",
+      "Bash($ANDROID_HOME/platform-tools/adb emu:*)",
+      "Bash(PGPASSWORD='hbNeelNavya1029!' psql:*)",
+      "Bash(chmod:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhODBiODc2Ni05MmFkLTQ0NjYtYmE2NC01MDEyYjU1ZjRlMmMiLCJyb2xlIjoiRE9DVE9SIiwiZXhwIjoxNzcxODE3NDMxLCJzZXNzaW9uX2lkIjoienRHeWhJYlpSRWY5QUZVR1VYNjF2OEZmaWlPcDVuMWRmSWxUbm9HT1FmdyJ9.aLz3UmASO5a2gZZ_YYY5Om7D9FVkx-8DhgQjbEdZmfY\")",
+      "Bash(./build-and-share-apk.sh)",
+      "Bash(keytool:*)",
+      "Bash(./gradlew assembleRelease:*)",
+      "Bash(open -R:*)"
     ]
   }
 }

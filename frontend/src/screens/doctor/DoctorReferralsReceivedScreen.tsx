@@ -23,6 +23,7 @@ import referralService, { Referral } from '../../services/referralService';
 import ReferralCard from '../../components/ReferralCard';
 
 const DoctorReferralsReceivedScreen: React.FC = () => {
+  console.log('[DoctorReferralsScreen] Component mounted');
   const navigation = useNavigation();
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,13 +46,19 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
   const loadReferrals = async () => {
     try {
       setLoading(true);
+      console.log('[DoctorReferralsScreen] Loading referrals, view:', view);
       const data = view === 'received'
         ? await referralService.getReferralsReceived()
         : await referralService.getReferralsMade();
+      console.log('[DoctorReferralsScreen] Loaded', data.length, 'referrals');
       setReferrals(data);
-    } catch (error) {
-      console.error('Failed to load referrals:', error);
-      Alert.alert('Error', 'Failed to load referrals');
+    } catch (error: any) {
+      console.error('[DoctorReferralsScreen] Failed to load referrals:', error);
+      console.error('[DoctorReferralsScreen] Error details:', error.message, error.response);
+      if (typeof window !== 'undefined') {
+        alert(`Failed to load referrals: ${error.message || 'Unknown error'}\n\nView: ${view}`);
+      }
+      Alert.alert('Error', `Failed to load referrals (${view}): ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
       setRefreshing(false);

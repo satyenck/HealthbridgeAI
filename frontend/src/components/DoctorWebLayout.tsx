@@ -216,6 +216,7 @@ export const DoctorWebLayout: React.FC<DoctorWebLayoutProps> = () => {
           {selectedMenu === 'appointments' && <DoctorVideoConsultationsScreen navigation={navigation} />}
           {selectedMenu === 'search' && <SearchPatientsScreen navigation={navigation} />}
           {selectedMenu === 'vitals' && <BulkVitalsRecordScreen navigation={navigation} />}
+          {selectedMenu === 'referrals' && <DoctorReferralsReceivedScreen navigation={navigation} />}
           {selectedMenu === 'messages' && <MessagesListScreen navigation={navigation} />}
           {selectedMenu === 'profile' && <DoctorProfileScreen navigation={navigation} />}
         </View>

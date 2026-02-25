@@ -108,24 +108,31 @@ async def get_doctor_profile(
 
 @router.get("/search-public")
 async def search_doctors_public(
-    query: str,
+    query: str = "",
     db: Session = Depends(get_db)
 ):
     """
     Public endpoint to search doctors by first name or last name.
-    Used for patient profile doctor selection dropdown.
+    Used for patient profile doctor selection dropdown and referral system.
     No authentication required.
+
+    If query is empty, returns all doctors (for referral modal).
+    If query is provided, must be at least 2 characters.
     """
-    if len(query) < 2:
+    if query and len(query) < 2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Query must be at least 2 characters"
         )
 
-    doctors = db.query(DoctorProfile).filter(
-        (DoctorProfile.first_name.ilike(f"%{query}%")) |
-        (DoctorProfile.last_name.ilike(f"%{query}%"))
-    ).limit(20).all()
+    # If query is empty, return all doctors
+    if not query:
+        doctors = db.query(DoctorProfile).limit(50).all()
+    else:
+        doctors = db.query(DoctorProfile).filter(
+            (DoctorProfile.first_name.ilike(f"%{query}%")) |
+            (DoctorProfile.last_name.ilike(f"%{query}%"))
+        ).limit(20).all()
 
     return [
         {

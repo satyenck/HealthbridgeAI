@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import referralService, { Referral } from '../../services/referralService';
@@ -35,6 +36,7 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
   const [selectedReferral, setSelectedReferral] = useState<Referral | null>(null);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [acceptNotes, setAcceptNotes] = useState('');
   const [declineReason, setDeclineReason] = useState('');
@@ -97,26 +99,31 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
 
   const handleReferralPress = (referral: Referral) => {
     setSelectedReferral(referral);
-    // Navigate to referral detail screen (to be implemented) or show action sheet
+
+    // On web, show custom action menu modal
+    if (Platform.OS === 'web') {
+      setShowActionMenu(true);
+      return;
+    }
+
+    // On mobile, use Alert.alert
     Alert.alert(
       'Referral Actions',
       `Patient: ${referral.patient_name}\nFrom: ${referral.referring_doctor_name}`,
       [
         {
           text: 'View Patient',
-          onPress: () => navigation.navigate('DoctorPatientProfile' as never, { patientId: referral.patient_id } as never),
+          onPress: () => handleViewPatient(referral),
         },
         referral.status === 'PENDING' && {
           text: 'Accept',
           onPress: () => {
-            setSelectedReferral(referral);
             setShowAcceptModal(true);
           },
         },
         referral.status === 'PENDING' && {
           text: 'Decline',
           onPress: () => {
-            setSelectedReferral(referral);
             setShowDeclineModal(true);
           },
           style: 'destructive',
@@ -124,7 +131,6 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
         referral.status === 'ACCEPTED' && {
           text: 'Book Appointment',
           onPress: () => {
-            // TODO: Navigate to appointment booking
             Alert.alert('Info', 'Appointment booking coming soon');
           },
         },
@@ -138,6 +144,15 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
         },
       ].filter(Boolean) as any
     );
+  };
+
+  const handleViewPatient = (referral: Referral) => {
+    setShowActionMenu(false);
+    // Navigate to PatientTimeline screen with patient ID
+    navigation.navigate('PatientTimeline' as never, {
+      patientId: referral.patient_id,
+      patientName: referral.patient_name
+    } as never);
   };
 
   const handleAcceptReferral = async () => {
@@ -394,6 +409,89 @@ const DoctorReferralsReceivedScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Action Menu Modal (for Web) */}
+      <Modal
+        visible={showActionMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowActionMenu(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Referral Actions</Text>
+            {selectedReferral && (
+              <>
+                <Text style={styles.modalDescription}>
+                  Patient: {selectedReferral.patient_name}{'\n'}
+                  From: {selectedReferral.referring_doctor_name}
+                </Text>
+
+                {/* Action Buttons */}
+                <View style={styles.actionButtonsContainer}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleViewPatient(selectedReferral)}>
+                    <Text style={styles.actionButtonText}>View Patient</Text>
+                  </TouchableOpacity>
+
+                  {selectedReferral.status === 'PENDING' && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.acceptButton]}
+                        onPress={() => {
+                          setShowActionMenu(false);
+                          setShowAcceptModal(true);
+                        }}>
+                        <Text style={styles.actionButtonTextWhite}>Accept</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.declineButton]}
+                        onPress={() => {
+                          setShowActionMenu(false);
+                          setShowDeclineModal(true);
+                        }}>
+                        <Text style={styles.actionButtonTextWhite}>Decline</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {selectedReferral.status === 'ACCEPTED' && (
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => {
+                        setShowActionMenu(false);
+                        if (typeof window !== 'undefined') {
+                          alert('Appointment booking coming soon');
+                        }
+                      }}>
+                      <Text style={styles.actionButtonText}>Book Appointment</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {selectedReferral.status === 'APPOINTMENT_SCHEDULED' && (
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.acceptButton]}
+                      onPress={() => {
+                        setShowActionMenu(false);
+                        handleCompleteReferral(selectedReferral.referral_id);
+                      }}>
+                      <Text style={styles.actionButtonTextWhite}>Mark Complete</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.cancelButton]}
+                    onPress={() => setShowActionMenu(false)}>
+                    <Text style={styles.actionButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -533,6 +631,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#F44336',
   },
   modalConfirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  actionButtonsContainer: {
+    marginTop: 16,
+    gap: 12,
+  },
+  actionButton: {
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  acceptButton: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  declineButton: {
+    backgroundColor: '#F44336',
+    borderColor: '#F44336',
+  },
+  cancelButton: {
+    backgroundColor: '#F5F5F5',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  actionButtonTextWhite: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',

@@ -69,6 +69,9 @@ const PatientReferralsScreen: React.FC = () => {
         break;
       case 'ACCEPTED':
         message += 'Status: Doctor has accepted. You can now book an appointment.';
+        if (referral.referred_doctor_notes) {
+          message += `\n\nDoctor's Notes: ${referral.referred_doctor_notes}`;
+        }
         actions.push({
           text: 'Book Appointment',
           onPress: () => handleBookAppointment(referral),
@@ -76,9 +79,15 @@ const PatientReferralsScreen: React.FC = () => {
         break;
       case 'APPOINTMENT_SCHEDULED':
         message += `Appointment scheduled for ${new Date(referral.appointment_scheduled_time!).toLocaleString()}.`;
+        if (referral.referred_doctor_notes) {
+          message += `\n\nDoctor's Notes: ${referral.referred_doctor_notes}`;
+        }
         break;
       case 'COMPLETED':
         message += 'Status: Appointment completed.';
+        if (referral.referred_doctor_notes) {
+          message += `\n\nDoctor's Notes: ${referral.referred_doctor_notes}`;
+        }
         break;
       case 'DECLINED':
         message += 'Status: Doctor has declined the referral.';

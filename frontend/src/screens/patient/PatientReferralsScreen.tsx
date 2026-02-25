@@ -122,30 +122,23 @@ const PatientReferralsScreen: React.FC = () => {
   };
 
   const handleBookAppointment = (referral: Referral) => {
-    // TODO: Navigate to appointment booking screen with doctor pre-selected
-    Alert.alert(
-      'Book Appointment',
-      `Book an appointment with ${referral.referred_to_doctor_name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          onPress: () => {
-            // Navigate to appointment booking (to be implemented)
-            Alert.alert('Info', 'Appointment booking coming soon. Please message the doctor to schedule.');
-          },
-        },
-      ]
-    );
+    // Navigate to video consultation booking with referred doctor pre-selected
+    navigation.navigate('ScheduleVideoConsultation' as never, {
+      preSelectedDoctorId: referral.referred_to_doctor_id,
+      preSelectedDoctorName: referral.referred_to_doctor_name,
+      symptomsText: referral.reason,
+    } as never);
   };
 
   const handleMessageDoctor = async (referral: Referral) => {
     try {
-      // Navigate to messaging screen with doctor
-      // Check if messaging service exists
-      navigation.navigate('MessagesConversation' as never, {
-        recipientId: referral.referred_to_doctor_id,
-        recipientName: referral.referred_to_doctor_name,
+      // Navigate to Messages stack -> DoctorMessages screen with the referred doctor
+      navigation.navigate('Messages' as never, {
+        screen: 'DoctorMessages',
+        params: {
+          doctorId: referral.referred_to_doctor_id,
+          doctorName: referral.referred_to_doctor_name,
+        },
       } as never);
     } catch (error) {
       console.error('Failed to open messaging:', error);

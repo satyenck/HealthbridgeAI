@@ -32,8 +32,10 @@ interface Doctor {
 const ScheduleVideoConsultationScreen = ({route}: any) => {
   const navigation = useNavigation();
   const symptomsText = route?.params?.symptomsText || '';
+  const preSelectedDoctorId = route?.params?.preSelectedDoctorId || '';
+  const preSelectedDoctorName = route?.params?.preSelectedDoctorName || '';
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [selectedDoctor, setSelectedDoctor] = useState<string>('');
+  const [selectedDoctor, setSelectedDoctor] = useState<string>(preSelectedDoctorId);
   const [selectedDate, setSelectedDate] = useState<Date>(addDays(new Date(), 1));
   const [selectedTime, setSelectedTime] = useState<string>('10:00');
   const [duration, setDuration] = useState<number>(30);
@@ -44,6 +46,13 @@ const ScheduleVideoConsultationScreen = ({route}: any) => {
   useEffect(() => {
     fetchDoctors();
   }, []);
+
+  // Pre-select doctor if referral provided
+  useEffect(() => {
+    if (preSelectedDoctorId && doctors.length > 0) {
+      setSelectedDoctor(preSelectedDoctorId);
+    }
+  }, [preSelectedDoctorId, doctors]);
 
   const fetchDoctors = async () => {
     try {

@@ -20,6 +20,7 @@ import {TimelineItem} from '../../components/TimelineItem';
 import {VitalsChart} from '../../components/VitalsChart';
 import {calculateAge} from '../../utils/dateHelpers';
 import messagingService from '../../services/messagingService';
+import CreateReferralModal from '../../components/CreateReferralModal';
 
 export const PatientTimelineScreen = ({route, navigation}: any) => {
   const {patientId} = route.params;
@@ -31,6 +32,7 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
   const [appointmentTab, setAppointmentTab] = useState<'upcoming' | 'past'>('upcoming');
   const [reportTab, setReportTab] = useState<'pending' | 'reviewed'>('pending');
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [showReferralModal, setShowReferralModal] = useState(false);
 
   useEffect(() => {
     loadTimeline();
@@ -411,6 +413,19 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
           <Text style={[styles.cardTitle, {color: '#2C3E50'}]}>Schedule Video Call</Text>
           <Text style={[styles.cardDescription, {color: '#6C757D'}]}>
             Create video consultation
+          </Text>
+          <Icon name="chevron-right" size={24} color="#ADB5BD" style={styles.cardChevron} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.dashboardCard, {backgroundColor: '#FFFFFF'}]}
+          onPress={() => setShowReferralModal(true)}>
+          <View style={[styles.cardIconContainer, {backgroundColor: '#F8F9FA'}]}>
+            <Icon name="sync-alt" size={32} color="#5B7C99" />
+          </View>
+          <Text style={[styles.cardTitle, {color: '#2C3E50'}]}>Refer Patient</Text>
+          <Text style={[styles.cardDescription, {color: '#6C757D'}]}>
+            Refer to another doctor
           </Text>
           <Icon name="chevron-right" size={24} color="#ADB5BD" style={styles.cardChevron} />
         </TouchableOpacity>
@@ -814,6 +829,17 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
         {activeView === 'vitals' && renderVitals()}
         {activeView === 'reports' && renderReports()}
       </ScrollView>
+
+      <CreateReferralModal
+        visible={showReferralModal}
+        onClose={() => setShowReferralModal(false)}
+        patientId={patientId}
+        patientName={timeline ? `${timeline.patient.first_name} ${timeline.patient.last_name}` : ''}
+        onSuccess={() => {
+          setShowReferralModal(false);
+          Alert.alert('Success', 'Referral created successfully');
+        }}
+      />
     </View>
   );
 };

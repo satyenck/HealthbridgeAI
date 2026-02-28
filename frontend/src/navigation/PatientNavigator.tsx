@@ -25,6 +25,7 @@ import {PatientConversationsScreen} from '../screens/patient/PatientConversation
 import {DoctorMessagesScreen} from '../screens/patient/DoctorMessagesScreen';
 import messagingService from '../services/messagingService';
 import PatientReferralsScreen from '../screens/patient/PatientReferralsScreen';
+import PatientDocumentsScreen from '../screens/patient/PatientDocumentsScreen';
 import referralService from '../services/referralService';
 
 const Tab = createBottomTabNavigator();
@@ -180,6 +181,31 @@ const HomeStack = ({navigation}: any) => {
               </View>
               <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
                 My Referrals
+              </Text>
+            </View>
+          ),
+        }}
+      />
+      <Stack.Screen
+        name="MyDocuments"
+        component={PatientDocumentsScreen}
+        options={{
+          title: 'My Documents',
+          headerTitle: () => (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#00ACC1',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+              }}>
+                <Icon name="favorite" size={20} color="#fff" />
+              </View>
+              <Text style={{fontSize: 18, fontWeight: '700', color: '#333'}}>
+                My Documents
               </Text>
             </View>
           ),

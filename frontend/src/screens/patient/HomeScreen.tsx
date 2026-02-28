@@ -223,6 +223,19 @@ export const HomeScreen = ({navigation}: any) => {
           <Icon name="chevron-right" size={24} color="#ADB5BD" />
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={[styles.actionCard, {backgroundColor: '#FFFFFF'}]}
+          onPress={() => navigation.navigate('MyDocuments')}>
+          <View style={[styles.cardIconContainer, {backgroundColor: '#F8F9FA'}]}>
+            <Icon name="folder" size={32} color="#5B7C99" />
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={[styles.cardTitle, {color: '#2C3E50'}]}>My Documents</Text>
+            <Text style={[styles.cardDescription, {color: '#6C757D'}]}>Upload and manage lab reports, MRI scans, prescriptions</Text>
+          </View>
+          <Icon name="chevron-right" size={24} color="#ADB5BD" />
+        </TouchableOpacity>
+
         {/* Health Tip Card */}
         <View style={styles.tipSection}>
           <Text style={styles.sectionTitle}>Daily Health Tip</Text>

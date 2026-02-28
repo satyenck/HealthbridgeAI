@@ -639,6 +639,24 @@ class MediaFile(Base):
     encounter = relationship("Encounter", back_populates="media_files")
 
 
+class PatientDocument(Base):
+    """
+    Stores patient-uploaded medical documents (lab reports, MRI scans, prescriptions).
+    Not linked to specific encounters - accessible to all doctors treating the patient.
+    """
+    __tablename__ = "patient_documents"
+
+    file_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    patient_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False, index=True)
+    file_type = Column(String(50), nullable=False)  # pdf, image, video
+    filename = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    patient = relationship("User", foreign_keys=[patient_id])
+
+
 # ============================================================================
 # PERMISSIONS & SHARING
 # ============================================================================

@@ -1,15 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models_v2 import User, PatientProfile, UserRole
+from app.models_v2 import User, PatientProfile, UserRole, PatientDocument
 from app.schemas_v2 import (
     PatientProfileCreate, PatientProfileResponse, PatientProfileUpdate,
     VoiceTranscriptionRequest
 )
 from app.auth import get_current_active_user, get_current_patient
 from app.services.gemini_service import gemini_service
+from app.services.file_service import FileService
+from typing import List
+from uuid import UUID
 import json
+import io
 
 router = APIRouter(prefix="/api/profile", tags=["Profile"])
 
@@ -551,3 +556,161 @@ async def get_health_insights(
     # ===== END SAVE TO CACHE =====
 
     return response_data
+
+
+# ============================================================================
+# PATIENT DOCUMENTS (Lab reports, MRI scans, prescriptions, etc.)
+# ============================================================================
+
+@router.get("/documents")
+async def get_patient_documents(
+    current_patient: User = Depends(get_current_patient),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all documents uploaded by the patient.
+    Returns list of documents with metadata.
+    """
+    documents = db.query(PatientDocument).filter(
+        PatientDocument.patient_id == current_patient.user_id
+    ).order_by(PatientDocument.uploaded_at.desc()).all()
+
+    # Build response with file URLs
+    documents_list = []
+    for doc in documents:
+        documents_list.append({
+            "file_id": str(doc.file_id),
+            "file_name": doc.filename,
+            "file_type": doc.file_type,
+            "file_size": doc.file_size,
+            "uploaded_at": doc.uploaded_at.isoformat(),
+            "file_url": f"/api/profile/documents/{doc.file_id}/download"
+        })
+
+    return documents_list
+
+
+@router.post("/documents/upload")
+async def upload_patient_documents(
+    files: List[UploadFile] = File(...),
+    current_patient: User = Depends(get_current_patient),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload medical documents (lab reports, MRI scans, prescriptions, etc.).
+    These documents are accessible to all doctors treating the patient.
+    """
+    if not files:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No files provided"
+        )
+
+    # Save documents using FileService
+    saved_documents = await FileService.save_patient_documents(files, current_patient.user_id, db)
+
+    # Build response
+    documents_list = []
+    for doc in saved_documents:
+        documents_list.append({
+            "file_id": str(doc.file_id),
+            "file_name": doc.filename,
+            "file_type": doc.file_type,
+            "file_size": doc.file_size,
+            "uploaded_at": doc.uploaded_at.isoformat(),
+            "file_url": f"/api/profile/documents/{doc.file_id}/download"
+        })
+
+    return documents_list
+
+
+@router.delete("/documents/{file_id}")
+async def delete_patient_document(
+    file_id: UUID,
+    current_patient: User = Depends(get_current_patient),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a patient document.
+    Only the patient who uploaded it can delete it.
+    """
+    # Verify document exists and belongs to patient
+    document = db.query(PatientDocument).filter(
+        PatientDocument.file_id == file_id
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    if document.patient_id != current_patient.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this document"
+        )
+
+    # Delete using FileService
+    FileService.delete_patient_document(file_id, db)
+
+    return {"message": "Document deleted successfully"}
+
+
+@router.get("/documents/{file_id}/download")
+async def download_patient_document(
+    file_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Download/view a patient document.
+    Accessible to the patient and all doctors treating them.
+    """
+    # Verify document exists
+    document = db.query(PatientDocument).filter(
+        PatientDocument.file_id == file_id
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    # Authorization: patient can access their own documents, doctors can access their patients' documents
+    if current_user.role == UserRole.PATIENT:
+        if document.patient_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this document"
+            )
+    elif current_user.role == UserRole.DOCTOR:
+        # For now, allow all doctors to access patient documents
+        # TODO: Add more granular access control (e.g., only doctors who have seen the patient)
+        pass
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this document"
+        )
+
+    # Read and decrypt file
+    file_contents = FileService.read_encrypted_patient_document(file_id, db)
+
+    # Determine content type based on file type
+    content_type_map = {
+        "image": "image/jpeg",
+        "video": "video/mp4",
+        "document": "application/pdf"
+    }
+    content_type = content_type_map.get(document.file_type, "application/octet-stream")
+
+    # Return file as streaming response
+    return StreamingResponse(
+        io.BytesIO(file_contents),
+        media_type=content_type,
+        headers={
+            "Content-Disposition": f"inline; filename={document.filename}"
+        }
+    )

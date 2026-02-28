@@ -3,7 +3,7 @@ import uuid as uuid_lib
 from uuid import UUID
 from typing import List
 from fastapi import UploadFile, HTTPException, status
-from app.models_v2 import MediaFile
+from app.models_v2 import MediaFile, PatientDocument
 from sqlalchemy.orm import Session
 from app.services.encryption_service import get_encryption_service
 
@@ -190,4 +190,129 @@ class FileService:
 
         # Delete from database
         db.delete(media_file)
+        db.commit()
+
+    # =========================================================================
+    # PATIENT DOCUMENT METHODS (not encounter-linked)
+    # =========================================================================
+
+    @classmethod
+    async def save_patient_document(cls, file: UploadFile, patient_id: UUID, db: Session) -> PatientDocument:
+        """Save uploaded document for a patient (not linked to encounter)"""
+        # Validate file
+        cls._validate_file(file)
+
+        # Get file type
+        file_type = cls._get_file_type(file.filename)
+
+        # Generate unique filename
+        file_extension = os.path.splitext(file.filename)[1]
+        unique_filename = f"patient_{patient_id}_{uuid_lib.uuid4().hex}{file_extension}"
+
+        # Ensure upload directory exists
+        os.makedirs(cls.UPLOAD_DIR, exist_ok=True)
+
+        # Full file path
+        file_path = os.path.join(cls.UPLOAD_DIR, unique_filename)
+
+        # Save file to disk with encryption
+        try:
+            contents = await file.read()
+
+            # Encrypt file contents for HIPAA compliance
+            encryption_service = get_encryption_service()
+            encrypted_contents = encryption_service.encrypt_file(contents)
+
+            with open(file_path, "wb") as f:
+                f.write(encrypted_contents)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to save file: {str(e)}"
+            )
+
+        # Create database record
+        file_size = len(contents)
+        patient_doc = PatientDocument(
+            patient_id=patient_id,
+            file_type=file_type,
+            filename=file.filename,
+            file_path=file_path,
+            file_size=file_size
+        )
+
+        db.add(patient_doc)
+        db.commit()
+        db.refresh(patient_doc)
+
+        return patient_doc
+
+    @classmethod
+    async def save_patient_documents(cls, files: List[UploadFile], patient_id: UUID, db: Session) -> List[PatientDocument]:
+        """Save multiple documents for a patient"""
+        saved_files = []
+        for file in files:
+            saved_file = await cls.save_patient_document(file, patient_id, db)
+            saved_files.append(saved_file)
+        return saved_files
+
+    @classmethod
+    def get_patient_document_path(cls, file_id: UUID, db: Session) -> str:
+        """Get file path for a patient document"""
+        patient_doc = db.query(PatientDocument).filter(PatientDocument.file_id == file_id).first()
+
+        if not patient_doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found"
+            )
+
+        if not os.path.exists(patient_doc.file_path):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found on disk"
+            )
+
+        return patient_doc.file_path
+
+    @classmethod
+    def read_encrypted_patient_document(cls, file_id: UUID, db: Session) -> bytes:
+        """Read and decrypt an encrypted patient document"""
+        file_path = cls.get_patient_document_path(file_id, db)
+
+        try:
+            with open(file_path, "rb") as f:
+                encrypted_contents = f.read()
+
+            encryption_service = get_encryption_service()
+            decrypted_contents = encryption_service.decrypt_file(encrypted_contents)
+
+            return decrypted_contents
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to read document: {str(e)}"
+            )
+
+    @classmethod
+    def delete_patient_document(cls, file_id: UUID, db: Session) -> None:
+        """Delete patient document from disk and database"""
+        patient_doc = db.query(PatientDocument).filter(PatientDocument.file_id == file_id).first()
+
+        if not patient_doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found"
+            )
+
+        # Delete from disk
+        if os.path.exists(patient_doc.file_path):
+            try:
+                os.remove(patient_doc.file_path)
+            except Exception as e:
+                print(f"Error deleting document from disk: {e}")
+
+        # Delete from database
+        db.delete(patient_doc)
         db.commit()

@@ -45,6 +45,11 @@ export const mediaService = {
    * Pick a PDF document
    */
   async pickDocument(): Promise<MediaFile | null> {
+    // Web doesn't support document picker - disable for now
+    if (Platform.OS === 'web') {
+      throw new Error('Document picker not available on web. Please use the mobile app.');
+    }
+
     try {
       const result = await pick({
         type: [types.pdf],

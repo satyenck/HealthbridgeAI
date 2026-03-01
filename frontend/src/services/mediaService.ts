@@ -1,7 +1,4 @@
-// TEMPORARILY DISABLED: react-native-document-picker not compatible with RN 0.83
-// import DocumentPicker, {
-//   DocumentPickerResponse,
-// } from 'react-native-document-picker';
+import {pick, types, keepLocalCopy} from '@react-native-documents/picker';
 import {launchImageLibrary, launchCamera, Asset} from 'react-native-image-picker';
 import {Platform} from 'react-native';
 
@@ -46,34 +43,49 @@ export const mediaService = {
 
   /**
    * Pick a PDF document
-   * TEMPORARILY DISABLED: react-native-document-picker not compatible with RN 0.83
    */
   async pickDocument(): Promise<MediaFile | null> {
-    throw new Error('PDF picker temporarily unavailable. Please use images or videos instead.');
-    // try {
-    //   const result = await DocumentPicker.pick({
-    //     type: [DocumentPicker.types.pdf],
-    //   });
+    try {
+      const result = await pick({
+        type: [types.pdf],
+      });
 
-    //   const file = result[0];
+      if (!result || result.length === 0) {
+        return null;
+      }
 
-    //   // Validate file size
-    //   if (file.size && file.size > MAX_PDF_SIZE) {
-    //     throw new Error(`PDF size exceeds maximum of ${MAX_PDF_SIZE / 1024 / 1024}MB`);
-    //   }
+      const file = result[0];
+      console.log('PDF picker result:', JSON.stringify(file, null, 2));
 
-    //   return {
-    //     uri: file.uri,
-    //     type: file.type || 'application/pdf',
-    //     name: file.name || 'document.pdf',
-    //     size: file.size || 0,
-    //   };
-    // } catch (err) {
-    //   if (DocumentPicker.isCancel(err)) {
-    //     return null; // User cancelled
-    //   }
-    //   throw err;
-    // }
+      // Validate file size
+      if (file.size && file.size > MAX_PDF_SIZE) {
+        throw new Error(`PDF size exceeds maximum of ${MAX_PDF_SIZE / 1024 / 1024}MB`);
+      }
+
+      // Copy file to local app storage for persistent access
+      // This ensures FormData can access the file for upload
+      const localCopies = await keepLocalCopy({
+        files: [{uri: file.uri, fileName: file.name || 'document.pdf'}],
+        destination: 'documentDirectory',
+      });
+
+      const localFile = localCopies[0];
+      console.log('Local copy created:', JSON.stringify(localFile, null, 2));
+
+      return {
+        uri: localFile.localUri, // keepLocalCopy returns 'localUri' not 'uri'
+        type: file.type || 'application/pdf',
+        name: file.name || 'document.pdf',
+        size: file.size || 0,
+      };
+    } catch (err: any) {
+      console.error('PDF picker error:', err);
+      // User cancellation returns empty result in new API
+      if (Array.isArray(err) && err.length === 0) {
+        return null;
+      }
+      throw err;
+    }
   },
 
   /**

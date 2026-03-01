@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Linking,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {format, parseISO, addDays, addHours, isFuture, isPast} from 'date-fns';
@@ -26,9 +27,10 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
   const {patientId} = route.params;
   const [timeline, setTimeline] = useState<PatientTimeline | null>(null);
   const [videoConsultations, setVideoConsultations] = useState<VideoConsultation[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creatingEncounter, setCreatingEncounter] = useState(false);
-  const [activeView, setActiveView] = useState<'dashboard' | 'history' | 'appointments' | 'vitals' | 'reports'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'history' | 'appointments' | 'vitals' | 'reports' | 'documents'>('dashboard');
   const [appointmentTab, setAppointmentTab] = useState<'upcoming' | 'past'>('upcoming');
   const [reportTab, setReportTab] = useState<'pending' | 'reviewed'>('pending');
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -72,6 +74,15 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
         setVideoConsultations(patientConsultations);
       } catch (error) {
         console.error('Failed to load video consultations:', error);
+      }
+
+      // Fetch patient documents
+      try {
+        const patientDocs = await doctorService.getPatientDocuments(patientId);
+        setDocuments(patientDocs);
+      } catch (error) {
+        console.error('Failed to load patient documents:', error);
+        setDocuments([]);
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load patient timeline');
@@ -445,6 +456,19 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
 
         <TouchableOpacity
           style={[styles.dashboardCard, {backgroundColor: '#FFFFFF'}]}
+          onPress={() => setActiveView('documents')}>
+          <View style={[styles.cardIconContainer, {backgroundColor: '#F8F9FA'}]}>
+            <Icon name="folder-open" size={32} color="#5B7C99" />
+          </View>
+          <Text style={[styles.cardTitle, {color: '#2C3E50'}]}>Patient Documents</Text>
+          <Text style={[styles.cardDescription, {color: '#6C757D'}]}>
+            {documents.length} document{documents.length !== 1 ? 's' : ''} uploaded
+          </Text>
+          <Icon name="chevron-right" size={24} color="#ADB5BD" style={styles.cardChevron} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.dashboardCard, {backgroundColor: '#FFFFFF'}]}
           onPress={() =>
             navigation.navigate('PatientMessages', {
               patientId: patientId,
@@ -769,6 +793,88 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
     );
   };
 
+  const getFileIcon = (type: string): string => {
+    if (type.startsWith('image/')) return 'image';
+    if (type.startsWith('video/')) return 'videocam';
+    if (type === 'application/pdf') return 'picture-as-pdf';
+    return 'insert-drive-file';
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const handleViewDocument = async (doc: any) => {
+    try {
+      const baseUrl = 'https://healthbridgeai.duckdns.org';
+      const fullUrl = `${baseUrl}${doc.file_url}`;
+
+      if (Platform.OS === 'web') {
+        window.open(fullUrl, '_blank');
+      } else {
+        await Linking.openURL(fullUrl);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to open document');
+    }
+  };
+
+  const renderDocuments = () => {
+    return (
+      <View style={styles.documentsSection}>
+        <View style={styles.sectionHeader}>
+          <TouchableOpacity onPress={() => setActiveView('dashboard')}>
+            <Icon name="arrow-back" size={24} color="#5B7C99" />
+          </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Patient Documents</Text>
+        </View>
+
+        <View style={styles.infoBanner}>
+          <Icon name="info" size={20} color="#00695C" />
+          <Text style={styles.infoText}>
+            Medical records, lab reports, MRI scans, and prescriptions uploaded by the patient
+          </Text>
+        </View>
+
+        <ScrollView style={styles.documentsContent}>
+          {documents.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Icon name="folder-open" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>No documents uploaded yet</Text>
+              <Text style={styles.emptySubtext}>
+                Patient hasn't uploaded any medical documents
+              </Text>
+            </View>
+          ) : (
+            documents.map((doc) => (
+              <TouchableOpacity
+                key={doc.file_id}
+                style={styles.documentCard}
+                onPress={() => handleViewDocument(doc)}>
+                <View style={styles.documentInfo}>
+                  <Icon name={getFileIcon(doc.file_type)} size={40} color="#2196F3" />
+                  <View style={styles.documentDetails}>
+                    <Text style={styles.documentName} numberOfLines={2}>
+                      {doc.file_name}
+                    </Text>
+                    <Text style={styles.documentMeta}>
+                      {formatFileSize(doc.file_size)} • {format(parseISO(doc.uploaded_at), 'MMM dd, yyyy')}
+                    </Text>
+                  </View>
+                </View>
+                <Icon name="visibility" size={24} color="#00ACC1" />
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -828,6 +934,7 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
         {activeView === 'appointments' && renderAppointments()}
         {activeView === 'vitals' && renderVitals()}
         {activeView === 'reports' && renderReports()}
+        {activeView === 'documents' && renderDocuments()}
       </ScrollView>
 
       <CreateReferralModal
@@ -1141,5 +1248,68 @@ const styles = StyleSheet.create({
   },
   reportsContent: {
     flex: 1,
+  },
+  documentsSection: {
+    padding: 16,
+  },
+  documentsContent: {
+    flex: 1,
+  },
+  documentCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  documentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  documentDetails: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  documentName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  documentMeta: {
+    fontSize: 12,
+    color: '#999',
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#E8F5E9',
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#2E7D32',
+    lineHeight: 18,
+  },
+  emptyContainer: {
+    padding: 60,
+    alignItems: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#BBB',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

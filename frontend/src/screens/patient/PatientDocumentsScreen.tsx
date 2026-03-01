@@ -19,11 +19,14 @@ import {
   Linking,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {MediaPicker} from '../../components/MediaPicker';
 import {MediaFile} from '../../services/mediaService';
 import apiService from '../../services/apiService';
 import {formatFileSize} from '../../utils/fileHelpers';
 import {format, parseISO} from 'date-fns';
+import {API_CONFIG} from '../../config/api';
 
 interface PatientDocument {
   file_id: string;
@@ -88,28 +91,59 @@ export const PatientDocumentsScreen = ({navigation}: any) => {
     try {
       setUploading(true);
 
-      const formData = new FormData();
-      selectedFiles.forEach((file) => {
-        formData.append('files', {
-          uri: file.uri,
+      // Get auth token
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      // Prepare multipart form data for react-native-blob-util
+      const multipartData = selectedFiles.map((file) => {
+        if (!file.uri) {
+          throw new Error(`File ${file.name} has no URI`);
+        }
+
+        // Remove file:// prefix if present
+        const filePath = file.uri.replace('file://', '');
+
+        return {
+          name: 'files',
+          filename: file.name,
           type: file.type,
-          name: file.name,
-        } as any);
+          data: ReactNativeBlobUtil.wrap(filePath),
+        };
       });
 
-      await apiService.post('/api/profile/documents/upload', formData, {
-        headers: {
+      console.log('Uploading files with blob-util:', selectedFiles.map(f => f.name));
+
+      // Use ReactNativeBlobUtil for file upload (works correctly on Android)
+      const response = await ReactNativeBlobUtil.fetch(
+        'POST',
+        `${API_CONFIG.BASE_URL}/api/profile/documents/upload`,
+        {
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
-      });
+        multipartData
+      );
 
-      Alert.alert('Success', 'Documents uploaded successfully');
-      setSelectedFiles([]);
-      setShowUploadSection(false);
-      await loadDocuments();
+      const responseData = response.json();
+      console.log('Upload response:', responseData);
+
+      if (response.respInfo.status === 200) {
+        Alert.alert('Success', 'Documents uploaded successfully');
+        setSelectedFiles([]);
+        setShowUploadSection(false);
+        await loadDocuments();
+      } else {
+        throw new Error(responseData.detail || 'Upload failed');
+      }
     } catch (error: any) {
       console.error('Failed to upload documents:', error);
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to upload documents');
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to upload documents'
+      );
     } finally {
       setUploading(false);
     }

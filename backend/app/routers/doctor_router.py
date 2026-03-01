@@ -622,6 +622,50 @@ async def get_patient_reports(
     return reports
 
 
+@router.get("/patients/{patient_id}/documents")
+async def get_patient_documents(
+    patient_id: UUID,
+    current_doctor: User = Depends(get_current_doctor_or_assistant),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all documents uploaded by a specific patient.
+    Allows doctors to view patient-uploaded medical records, lab reports, MRI scans, etc.
+    """
+    from app.models_v2 import PatientDocument
+
+    # Verify patient exists
+    patient = db.query(User).filter(
+        User.user_id == patient_id,
+        User.role == "PATIENT"
+    ).first()
+
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found"
+        )
+
+    # Get all documents for this patient
+    documents = db.query(PatientDocument).filter(
+        PatientDocument.patient_id == patient_id
+    ).order_by(PatientDocument.uploaded_at.desc()).all()
+
+    # Build response with file URLs
+    documents_list = []
+    for doc in documents:
+        documents_list.append({
+            "file_id": str(doc.file_id),
+            "file_name": doc.filename,
+            "file_type": doc.file_type,
+            "file_size": doc.file_size,
+            "uploaded_at": doc.uploaded_at.isoformat(),
+            "file_url": f"/api/profile/documents/{doc.file_id}/download"
+        })
+
+    return documents_list
+
+
 @router.get("/reports/{report_id}")
 async def get_report_details(
     report_id: UUID,

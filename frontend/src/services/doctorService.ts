@@ -67,6 +67,15 @@ export const doctorService = {
   },
 
   /**
+   * Get patient documents (medical records, lab reports, scans uploaded by patient)
+   */
+  async getPatientDocuments(patientId: string): Promise<any[]> {
+    return await apiService.get<any[]>(
+      API_ENDPOINTS.DOCTOR_PATIENT_DOCUMENTS(patientId),
+    );
+  },
+
+  /**
    * Get pending reports that need doctor review
    */
   async getPendingReports(): Promise<SummaryReport[]> {

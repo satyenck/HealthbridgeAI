@@ -149,7 +149,14 @@
       "Bash(./build-and-share-apk.sh)",
       "Bash(keytool:*)",
       "Bash(./gradlew assembleRelease:*)",
-      "Bash(open -R:*)"
+      "Bash(open -R:*)",
+      "Bash($ANDROID_HOME/platform-tools/adb shell getprop sys.boot_completed)",
+      "WebSearch",
+      "WebFetch(domain:react-native-documents.github.io)",
+      "Bash($ANDROID_HOME/platform-tools/adb shell am force-stop com.healthbridgeai)",
+      "Bash($ANDROID_HOME/platform-tools/adb shell am start -n com.healthbridgeai/.MainActivity)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb logcat -c)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb shell am force-stop com.healthbridgeai)"
     ]
   }
 }

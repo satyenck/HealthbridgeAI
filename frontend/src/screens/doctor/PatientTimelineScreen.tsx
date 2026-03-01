@@ -810,15 +810,43 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
 
   const handleViewDocument = async (doc: any) => {
     try {
-      const baseUrl = 'https://healthbridgeai.duckdns.org';
-      const fullUrl = `${baseUrl}${doc.file_url}`;
-
       if (Platform.OS === 'web') {
-        window.open(fullUrl, '_blank');
+        // For web, fetch with authentication and create blob URL
+        const token = await AsyncStorage.getItem('access_token');
+        if (!token) {
+          Alert.alert('Error', 'Authentication required');
+          return;
+        }
+
+        const baseUrl = 'https://healthbridgeai.duckdns.org';
+        const fullUrl = `${baseUrl}${doc.file_url}`;
+
+        // Fetch the file with authentication headers
+        const response = await fetch(fullUrl, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch document');
+        }
+
+        // Create blob and open in new tab
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+
+        // Clean up blob URL after a delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
       } else {
+        // For mobile, open directly (auth handled by the app)
+        const baseUrl = 'https://healthbridgeai.duckdns.org';
+        const fullUrl = `${baseUrl}${doc.file_url}`;
         await Linking.openURL(fullUrl);
       }
     } catch (error) {
+      console.error('Error viewing document:', error);
       Alert.alert('Error', 'Failed to open document');
     }
   };

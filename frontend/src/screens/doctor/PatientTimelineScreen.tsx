@@ -151,11 +151,7 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
             patient_id: patientId,
           });
 
-          Alert.alert(
-            'Success',
-            'Video consultation scheduled successfully! The patient has been notified.',
-            [{text: 'OK', onPress: () => loadTimeline()}]
-          );
+          loadTimeline();
         }
       } else {
         Alert.alert(
@@ -175,11 +171,7 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
                     patient_id: patientId,
                   });
 
-                  Alert.alert(
-                    'Success',
-                    'Video consultation scheduled successfully! The patient has been notified.',
-                    [{text: 'OK', onPress: () => loadTimeline()}]
-                  );
+                  loadTimeline();
                 } catch (error: any) {
                   Alert.alert('Error', error.message || 'Failed to schedule video consultation');
                 }
@@ -972,7 +964,6 @@ export const PatientTimelineScreen = ({route, navigation}: any) => {
         patientName={timeline ? `${timeline.patient.first_name} ${timeline.patient.last_name}` : ''}
         onSuccess={() => {
           setShowReferralModal(false);
-          Alert.alert('Success', 'Referral created successfully');
         }}
       />
     </View>

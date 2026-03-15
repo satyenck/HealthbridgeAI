@@ -630,14 +630,15 @@ async def update_patient_symptoms(
     return summary
 
 
-@router.get("/{encounter_id}/summary", response_model=SummaryReportResponse)
+@router.get("/{encounter_id}/summary")
 async def get_summary_report(
     encounter_id: UUID,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get summary report for an encounter
+    Get summary reports for an encounter.
+    Returns both CONVERSATION_TRANSCRIPT and AI_GENERATED reports if they exist.
     """
     # Verify access to encounter
     encounter = db.query(Encounter).filter(
@@ -657,17 +658,34 @@ async def get_summary_report(
             detail="Not authorized"
         )
 
-    summary = db.query(SummaryReport).filter(
-        SummaryReport.encounter_id == encounter_id
+    # Get all summary reports for this encounter
+    from app.models_v2 import ReportType
+
+    conversation_report = db.query(SummaryReport).filter(
+        SummaryReport.encounter_id == encounter_id,
+        SummaryReport.report_type == ReportType.CONVERSATION_TRANSCRIPT
     ).first()
 
-    if not summary:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Summary report not found"
-        )
+    ai_report = db.query(SummaryReport).filter(
+        SummaryReport.encounter_id == encounter_id,
+        SummaryReport.report_type == ReportType.AI_GENERATED
+    ).first()
 
-    return summary
+    # Return both reports if they exist
+    response = {
+        "conversation_report": conversation_report,
+        "ai_generated_report": ai_report
+    }
+
+    # For backwards compatibility, if only one report exists, also return it as "summary"
+    if conversation_report and not ai_report:
+        response["summary"] = conversation_report
+    elif ai_report and not conversation_report:
+        response["summary"] = ai_report
+    elif ai_report:  # If both exist, prefer AI report as "summary"
+        response["summary"] = ai_report
+
+    return response
 
 
 # ============================================================================
@@ -1305,6 +1323,7 @@ async def translate_summary_to_language(
     return SummaryReportResponse(
         report_id=summary.report_id,
         encounter_id=summary.encounter_id,
+        report_type=summary.report_type,
         content=translated_content,
         status=summary.status,
         priority=summary.priority,

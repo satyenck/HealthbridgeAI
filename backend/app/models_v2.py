@@ -2,7 +2,7 @@
 Healthbridge AI - New Database Models (v2)
 Based on ERD specification with UUID support and comprehensive health tracking
 """
-from sqlalchemy import Column, String, DateTime, ForeignKey, Text, Date, Enum, Integer, Float, Boolean
+from sqlalchemy import Column, String, DateTime, ForeignKey, Text, Date, Enum, Integer, Float, Boolean, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -58,6 +58,12 @@ class Priority(str, enum.Enum):
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
+
+
+class ReportType(str, enum.Enum):
+    """Types of summary reports"""
+    CONVERSATION_TRANSCRIPT = "CONVERSATION_TRANSCRIPT"  # Auto-generated from live conversation
+    AI_GENERATED = "AI_GENERATED"  # Doctor-initiated AI summary
 
 
 class OrderStatus(str, enum.Enum):
@@ -552,24 +558,32 @@ class LabResultsLog(Base):
 
 class SummaryReport(Base):
     """
-    AI-generated core document with all clinical sections.
+    Medical report document with all clinical sections.
+    Supports two types: CONVERSATION_TRANSCRIPT (auto-generated from live conversation)
+    and AI_GENERATED (doctor-initiated AI summary).
     Content stored as JSONB for flexibility.
     """
     __tablename__ = "summary_reports"
+    __table_args__ = (
+        # Ensure only one report of each type per encounter
+        Index('ix_encounter_report_type', 'encounter_id', 'report_type', unique=True),
+    )
 
     report_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    encounter_id = Column(UUID(as_uuid=True), ForeignKey("encounters.encounter_id"), nullable=False, unique=True)
+    encounter_id = Column(UUID(as_uuid=True), ForeignKey("encounters.encounter_id"), nullable=False, index=True)
+    report_type = Column(Enum(ReportType), nullable=False, index=True)
     status = Column(Enum(ReportStatus), default=ReportStatus.GENERATED, nullable=False, index=True)
     priority = Column(Enum(Priority), nullable=True)
 
     # JSONB content structure:
     # {
+    #   "transcription": "full conversation transcript with speaker labels (for CONVERSATION_TRANSCRIPT type)",
     #   "symptoms": "patient-reported symptoms",
-    #   "diagnosis": "AI potential diagnosis",
-    #   "treatment": "AI treatment recommendations",
-    #   "tests": "AI recommended tests",
-    #   "prescription": "AI prescription suggestions",
-    #   "next_steps": "AI next steps guidance"
+    #   "diagnosis": "diagnosis from conversation or AI",
+    #   "treatment": "treatment recommendations",
+    #   "tests": "recommended tests",
+    #   "prescription": "prescription/medications",
+    #   "next_steps": "next steps guidance"
     # }
     content = Column(JSONB, nullable=False)
 

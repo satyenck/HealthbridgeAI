@@ -51,6 +51,11 @@ class Priority(str, Enum):
     LOW = "LOW"
 
 
+class ReportType(str, Enum):
+    CONVERSATION_TRANSCRIPT = "CONVERSATION_TRANSCRIPT"
+    AI_GENERATED = "AI_GENERATED"
+
+
 class OrderStatus(str, Enum):
     SENT = "SENT"
     RECEIVED = "RECEIVED"
@@ -104,6 +109,16 @@ class PatientProfileBase(BaseModel):
 class PatientProfileCreate(PatientProfileBase):
     """Schema for creating patient profile"""
     pass
+
+
+class DoctorAddPatientRequest(BaseModel):
+    """Schema for doctor adding a new patient"""
+    phone_number: str = Field(..., min_length=10, max_length=20)
+    first_name: str = Field(..., min_length=1, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+    date_of_birth: date
+    gender: Gender
+    general_health_issues: Optional[str] = None
 
 
 class PatientProfileUpdate(BaseModel):
@@ -324,6 +339,7 @@ class SummaryReportContent(BaseModel):
 
 
 class SummaryReportBase(BaseModel):
+    report_type: ReportType
     status: ReportStatus = ReportStatus.GENERATED
     priority: Optional[Priority] = None
     content: SummaryReportContent
@@ -350,6 +366,7 @@ class SummaryReportResponse(SummaryReportBase):
     """Schema for summary report response"""
     report_id: UUID4
     encounter_id: UUID4
+    report_type: ReportType
     created_at: datetime
     updated_at: Optional[datetime] = None
 

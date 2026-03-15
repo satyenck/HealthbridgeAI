@@ -127,6 +127,92 @@ class GeminiService:
             print(f"[Transcription ERROR] {str(e)}")
             raise Exception(f"Transcription failed: {str(e)}")
 
+    def transcribe_conversation_with_speakers(self, audio_base64: str) -> str:
+        """
+        Transcribe doctor-patient conversation with speaker identification.
+        Returns transcript with "Doctor:" and "Patient:" labels for each speaker.
+        """
+        try:
+            # Decode base64 audio
+            audio_bytes = base64.b64decode(audio_base64)
+            audio_size = len(audio_bytes)
+            print(f"[Speaker Transcription] Audio size: {audio_size} bytes ({audio_size / 1024:.2f} KB)")
+
+            # Validate audio size
+            if audio_size < 1000:
+                raise Exception(f"Audio file too small ({audio_size} bytes). Recording may be empty or corrupted.")
+
+            # Create a temporary file for the audio
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.m4a') as temp_audio:
+                temp_audio.write(audio_bytes)
+                temp_audio_path = temp_audio.name
+
+            print(f"[Speaker Transcription] Temp file created: {temp_audio_path}")
+
+            try:
+                # Upload the audio file to Gemini
+                print(f"[Speaker Transcription] Uploading to Gemini...")
+                audio_file = genai.upload_file(temp_audio_path)
+                print(f"[Speaker Transcription] Upload complete. File name: {audio_file.name}")
+
+                # Use Gemini to transcribe with speaker diarization
+                prompt = """Transcribe this doctor-patient conversation with speaker identification.
+
+                CRITICAL INSTRUCTIONS:
+                1. This is a medical consultation between a DOCTOR and a PATIENT
+                2. Identify and label each speaker as "Doctor:" or "Patient:"
+                3. Transcribe EVERY word spoken from beginning to end
+                4. Do NOT summarize - provide complete verbatim transcription
+                5. Maintain accurate medical terminology
+                6. Format each speaker's dialogue on a new line with their label
+                7. If you cannot clearly distinguish speakers, make your best inference based on context (doctors typically ask questions, discuss diagnoses, and give recommendations; patients describe symptoms and ask questions)
+
+                Example format:
+                Doctor: How are you feeling today?
+                Patient: I have been experiencing headaches for the past three days.
+                Doctor: Can you describe the pain? Is it sharp or dull?
+                Patient: It's a throbbing pain on the left side of my head.
+
+                Provide the complete conversation transcript with speaker labels:"""
+
+                # Configure generation settings
+                generation_config = {
+                    'temperature': 0.1,  # Lower temperature for accurate transcription
+                    'top_p': 0.95,
+                    'top_k': 40,
+                    'max_output_tokens': 8192,  # Allow longer transcriptions
+                }
+
+                print(f"[Speaker Transcription] Generating content with Gemini...")
+                response = self.audio_model.generate_content(
+                    [prompt, audio_file],
+                    generation_config=generation_config
+                )
+                transcription = response.text.strip()
+                print(f"[Speaker Transcription] Result length: {len(transcription)} characters")
+                print(f"[Speaker Transcription] First 200 chars: '{transcription[:200]}...'")
+                if len(transcription) > 200:
+                    print(f"[Speaker Transcription] Last 200 chars: '...{transcription[-200:]}'")
+
+                # Check for problematic transcriptions
+                if transcription.lower() in ['silence', 'no audio', 'no speech', '']:
+                    print(f"[Speaker Transcription WARNING] Got '{transcription}' - audio may be silent or unclear")
+                    raise Exception(f"No speech detected in recording. Please ensure microphone is working and speak clearly during recording.")
+
+                # Clean up the uploaded file
+                genai.delete_file(audio_file.name)
+
+                return transcription
+
+            finally:
+                # Clean up the temporary file
+                if os.path.exists(temp_audio_path):
+                    os.unlink(temp_audio_path)
+
+        except Exception as e:
+            print(f"[Speaker Transcription ERROR] {str(e)}")
+            raise Exception(f"Speaker transcription failed: {str(e)}")
+
     def generate_summary_report(self, patient_description: str, health_history: str = "", vitals: dict = None, lab_results: dict = None) -> dict:
         """
         Generate comprehensive summary report with 7 sections for v2 architecture:
@@ -409,6 +495,76 @@ IMPORTANT FORMATTING:
 
         except Exception as e:
             raise Exception(f"Failed to extract medical info from conversation: {str(e)}")
+
+    def generate_conversation_summary(self, conversation_transcript: str) -> dict:
+        """
+        Generate comprehensive medical summary from doctor-patient conversation transcript.
+        Extracts and structures all medical information including symptoms, diagnosis,
+        medicines, labs, doctor's instructions, and next steps.
+
+        Args:
+            conversation_transcript: Full conversation transcript with speaker labels
+
+        Returns:
+            Structured medical summary with all relevant fields
+        """
+        try:
+            system_prompt = """You are a medical AI assistant creating comprehensive medical reports from doctor-patient conversations.
+Your role is to accurately extract and structure ALL medical information discussed during the consultation.
+
+Be thorough and precise. Extract:
+- ALL symptoms the patient reported
+- Complete diagnosis or differential diagnoses discussed
+- ALL medications/prescriptions mentioned with dosages and frequencies
+- ALL lab tests or investigations recommended
+- Complete treatment plan and doctor's instructions
+- Clear next steps and follow-up plans
+
+This summary will be used for medical records, so accuracy and completeness are critical."""
+
+            user_prompt = f"""Analyze this doctor-patient conversation and create a comprehensive medical summary:
+
+Conversation Transcript:
+{conversation_transcript}
+
+Generate a structured medical report in JSON format with these fields:
+{{
+    "symptoms": "Complete description of all patient symptoms mentioned, including severity, duration, location, and characteristics. If none discussed, write 'Not discussed in this consultation.'",
+    "diagnosis": "Full diagnosis or differential diagnoses discussed by the doctor, including reasoning and clinical findings. If none provided, write 'Not discussed in this consultation.'",
+    "treatment": "Complete treatment plan and doctor's instructions. Format as bullet points: • Each instruction on new line. Include medications, lifestyle changes, dietary advice, etc. If none discussed, write 'Not discussed in this consultation.'",
+    "tests": "All lab tests, investigations, or imaging studies recommended. Format as bullet points: • Test name - reason/indication. If none recommended, write 'No tests ordered.'",
+    "prescription": "All medications prescribed. Format as bullet points: • Medicine name - dosage - frequency - duration. If none prescribed, write 'No medications prescribed.'",
+    "next_steps": "Follow-up plan, when to return, warning signs to watch for, and any other action items. Format as bullet points: • Clear action with timeline. If none discussed, write 'No specific follow-up discussed.'"
+}}
+
+IMPORTANT:
+- Extract EVERYTHING mentioned - be comprehensive, not concise
+- Use bullet points (•) for treatment, tests, prescription, and next_steps
+- Include all details: dosages, frequencies, durations, timelines
+- Write "Not discussed" or "None" only if truly not mentioned
+- Maintain medical accuracy and terminology"""
+
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
+            response = self.text_model.generate_content(
+                full_prompt,
+                generation_config=genai.GenerationConfig(
+                    temperature=0.2,  # Low temperature for factual extraction
+                    response_mime_type="application/json"
+                )
+            )
+
+            result = json.loads(response.text)
+
+            # Clean markdown formatting from all fields
+            for key in result:
+                if isinstance(result[key], str):
+                    result[key] = clean_markdown_formatting(result[key])
+
+            return result
+
+        except Exception as e:
+            raise Exception(f"Failed to generate conversation summary: {str(e)}")
 
     def generate_health_insights(self, patient_data: dict, language: str = "English") -> dict:
         """

@@ -11,6 +11,7 @@ import {PendingReportsScreen} from '../screens/doctor/PendingReportsScreen';
 import {ReviewedReportsScreen} from '../screens/doctor/ReviewedReportsScreen';
 import {SearchPatientsScreen} from '../screens/doctor/SearchPatientsScreen';
 import {MyPatientsScreen} from '../screens/doctor/MyPatientsScreen';
+import {AddPatientScreen} from '../screens/doctor/AddPatientScreen';
 import {PatientTimelineScreen} from '../screens/doctor/PatientTimelineScreen';
 import {ReviewReportScreen} from '../screens/doctor/ReviewReportScreen';
 import {DoctorProfileScreen} from '../screens/doctor/DoctorProfileScreen';
@@ -319,6 +320,11 @@ const PatientsStack = ({navigation}: any) => {
             </View>
           ),
         }}
+      />
+      <Stack.Screen
+        name="AddPatient"
+        component={AddPatientScreen}
+        options={{title: 'Add Patient'}}
       />
       <Stack.Screen
         name="PatientTimeline"

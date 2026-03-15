@@ -40,6 +40,65 @@ PODS:
   - hermes-engine (0.14.0):
     - hermes-engine/Pre-built (= 0.14.0)
   - hermes-engine/Pre-built (0.14.0)
+  - NitroAudioRecorderPlayer (4.5.0):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - NitroModules
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
+  - NitroModules (0.32.0):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - RCT-Folly (2024.11.18.00):
     - boost
     - DoubleConversion
@@ -1954,7 +2013,35 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-document-picker (9.3.1):
+  - react-native-blob-util (0.24.7):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
+  - react-native-document-picker (12.0.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2682,8 +2769,6 @@ PODS:
     - React-perflogger (= 0.83.0)
     - React-utils (= 0.83.0)
     - SocketRocket
-  - RNAudioRecorderPlayer (3.6.14):
-    - React-Core
   - RNCAsyncStorage (2.2.0):
     - boost
     - DoubleConversion
@@ -2929,6 +3014,8 @@ DEPENDENCIES:
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - NitroAudioRecorderPlayer (from `../node_modules/react-native-audio-recorder-player`)
+  - NitroModules (from `../node_modules/react-native-nitro-modules`)
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
@@ -2967,7 +3054,8 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - react-native-agora (from `../node_modules/react-native-agora`)
-  - react-native-document-picker (from `../node_modules/react-native-document-picker`)
+  - react-native-blob-util (from `../node_modules/react-native-blob-util`)
+  - "react-native-document-picker (from `../node_modules/@react-native-documents/picker`)"
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
@@ -3004,7 +3092,6 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios/ReactAppDependencyProvider`)
   - ReactCodegen (from `build/generated/ios/ReactCodegen`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
-  - RNAudioRecorderPlayer (from `../node_modules/react-native-audio-recorder-player`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - RNFileViewer (from `../node_modules/react-native-file-viewer`)
@@ -3039,6 +3126,10 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v0.14.0
+  NitroAudioRecorderPlayer:
+    :path: "../node_modules/react-native-audio-recorder-player"
+  NitroModules:
+    :path: "../node_modules/react-native-nitro-modules"
   RCT-Folly:
     :podspec: "../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec"
   RCTDeprecation:
@@ -3113,8 +3204,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   react-native-agora:
     :path: "../node_modules/react-native-agora"
+  react-native-blob-util:
+    :path: "../node_modules/react-native-blob-util"
   react-native-document-picker:
-    :path: "../node_modules/react-native-document-picker"
+    :path: "../node_modules/@react-native-documents/picker"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
   react-native-pager-view:
@@ -3187,8 +3280,6 @@ EXTERNAL SOURCES:
     :path: build/generated/ios/ReactCodegen
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
-  RNAudioRecorderPlayer:
-    :path: "../node_modules/react-native-audio-recorder-player"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNCPicker:
@@ -3220,6 +3311,8 @@ SPEC CHECKSUMS:
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: dcfa76bff45bcc1af10a6c92bd2a519d9ce89a50
+  NitroAudioRecorderPlayer: 14d00c47187b918b9fca03e73e47152d2dc9352c
+  NitroModules: f964d2f3f5b392d0c0303737085cc30e375dc43f
   RCT-Folly: 846fda9475e61ec7bcbf8a3fe81edfcaeb090669
   RCTDeprecation: 2b70c6e3abe00396cefd8913efbf6a2db01a2b36
   RCTRequired: f3540eee8094231581d40c5c6d41b0f170237a81
@@ -3257,7 +3350,8 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 20046c0447efaa7aace0b76085aa9bb35b0e8105
   React-microtasksnativemodule: 0e837de56519c92d8a2e3097717df9497feb33cb
   react-native-agora: 0bc3bcd619b0afd4a2861aac65a5e546ee0d5e27
-  react-native-document-picker: dcf5e57f3bcae61bf8384a1c6f90896f81e17941
+  react-native-blob-util: 6dec9023ecc3ee5ac8ad377598e943f9ca63f741
+  react-native-document-picker: dc2d83366e47e89e7c51e8a41eab99c1d54e941c
   react-native-image-picker: b16541b587b275e81a12f9b82f215c5e9b0ccbf3
   react-native-pager-view: a0516effb17ca5120ac2113bfd21b91130ad5748
   react-native-safe-area-context: c00143b4823773bba23f2f19f85663ae89ceb460
@@ -3294,7 +3388,6 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: ebcf3a78dc1bcdf054c9e8d309244bade6b31568
   ReactCodegen: 11c08ff43a62009d48c71de000352e4515918801
   ReactCommon: 424cc34cf5055d69a3dcf02f3436481afb8b0f6f
-  RNAudioRecorderPlayer: b5ed41ccfe72a211a870bfe09ab36c046eb27d2a
   RNCAsyncStorage: 29f0230e1a25f36c20b05f65e2eb8958d6526e82
   RNCPicker: bf95ec4b2483e2ab256047130bc536b437cd916c
   RNFileViewer: 4b5d83358214347e4ab2d4ca8d5c1c90d869e251

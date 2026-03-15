@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from app.models_v2 import (
     Encounter, PatientProfile, VitalsLog, LabResultsLog,
-    SummaryReport, ReportStatus, Priority
+    SummaryReport, ReportStatus, Priority, ReportType
 )
 from app.schemas_v2 import SummaryReportContent
 from app.services.gemini_service import gemini_service
@@ -26,6 +26,7 @@ class EncounterService:
     ) -> SummaryReport:
         """
         Generate AI-powered summary report for an encounter.
+        This creates an AI_GENERATED type report, separate from CONVERSATION_TRANSCRIPT reports.
 
         Args:
             encounter_id: UUID of the encounter
@@ -34,7 +35,7 @@ class EncounterService:
             auto_assess_priority: Whether to automatically assess priority level
 
         Returns:
-            Created SummaryReport object
+            Created or updated SummaryReport object with report_type = AI_GENERATED
         """
         # Get encounter
         encounter = db.query(Encounter).filter(
@@ -90,17 +91,15 @@ class EncounterService:
             )
             priority = Priority[priority_str]  # Convert string to enum
 
-        # Check if summary report already exists
+        # Check if AI_GENERATED report already exists for this encounter
         existing_report = db.query(SummaryReport).filter(
-            SummaryReport.encounter_id == encounter_id
+            SummaryReport.encounter_id == encounter_id,
+            SummaryReport.report_type == ReportType.AI_GENERATED
         ).first()
 
         if existing_report:
-            # Update existing report with AI-generated content
-            # Preserve transcription if it exists
-            if existing_report.content and "transcription" in existing_report.content:
-                report_content["transcription"] = existing_report.content["transcription"]
-
+            # Update existing AI-generated report
+            print(f"=== UPDATING EXISTING AI_GENERATED REPORT ===")
             existing_report.content = report_content
             existing_report.priority = priority
             # Keep status as is (don't change REVIEWED back to PENDING)
@@ -109,9 +108,11 @@ class EncounterService:
             db.refresh(existing_report)
             return existing_report
         else:
-            # Create new summary report
+            # Create new AI-generated summary report
+            print(f"=== CREATING NEW AI_GENERATED REPORT ===")
             summary_report = SummaryReport(
                 encounter_id=encounter_id,
+                report_type=ReportType.AI_GENERATED,
                 status=ReportStatus.PENDING_REVIEW,  # Needs doctor review
                 priority=priority,
                 content=report_content
@@ -129,11 +130,19 @@ class EncounterService:
         db: Session
     ) -> dict:
         """
-        Process voice-recorded encounter:
-        1. Transcribe audio using Whisper
-        2. Create summary report with transcription ONLY (no AI analysis yet)
+        Process voice-recorded doctor-patient conversation:
+        1. Transcribe audio with speaker identification (Doctor/Patient)
+        2. Auto-generate conversation-based summary report with:
+           - Full transcript with speaker labels
+           - Symptoms discussed
+           - Diagnosis provided
+           - Medications prescribed
+           - Labs ordered
+           - Doctor's instructions
+           - Next steps
 
-        Doctor can later click "Generate AI Summary" to add AI analysis.
+        This creates a CONVERSATION_TRANSCRIPT type report.
+        Doctor can later generate a separate AI_GENERATED report if needed.
 
         Args:
             encounter_id: UUID of the encounter
@@ -143,37 +152,68 @@ class EncounterService:
         Returns:
             Dictionary with transcription and summary report
         """
-        # Transcribe audio
-        transcription_text = gemini_service.transcribe_audio(audio_base64)
-        print(f"=== TRANSCRIPTION RESULT ===")
-        print(f"Transcription: {transcription_text[:200]}...")  # First 200 chars
-        print(f"===========================")
+        # Transcribe audio with speaker identification
+        print(f"=== TRANSCRIBING CONVERSATION WITH SPEAKER IDENTIFICATION ===")
+        transcription_text = gemini_service.transcribe_conversation_with_speakers(audio_base64)
+        print(f"Transcription length: {len(transcription_text)} characters")
+        print(f"First 300 chars: '{transcription_text[:300]}...'")
+        print(f"================================================================")
 
-        # Create summary report with JUST the transcription (doctor's actual words)
-        # No AI generation yet - doctor can trigger that separately
-        summary_report = SummaryReport(
-            encounter_id=encounter_id,
-            status=ReportStatus.PENDING_REVIEW,  # Needs doctor review
-            priority=None,  # No priority yet
-            content={
-                "transcription": transcription_text,  # Raw transcription
-                "symptoms": "",
-                "diagnosis": "",
-                "treatment": "",
-                "tests": "",
-                "prescription": "",
-                "next_steps": ""
+        # Generate conversation-based summary from the transcript
+        print(f"=== GENERATING CONVERSATION-BASED SUMMARY ===")
+        conversation_summary = gemini_service.generate_conversation_summary(transcription_text)
+        print(f"Summary generated with fields: {conversation_summary.keys()}")
+        print(f"=============================================")
+
+        # Check if a CONVERSATION_TRANSCRIPT report already exists
+        existing_report = db.query(SummaryReport).filter(
+            SummaryReport.encounter_id == encounter_id,
+            SummaryReport.report_type == ReportType.CONVERSATION_TRANSCRIPT
+        ).first()
+
+        if existing_report:
+            # Update existing conversation transcript report
+            print(f"=== UPDATING EXISTING CONVERSATION REPORT ===")
+            existing_report.content = {
+                "transcription": transcription_text,
+                "symptoms": conversation_summary.get("symptoms", ""),
+                "diagnosis": conversation_summary.get("diagnosis", ""),
+                "treatment": conversation_summary.get("treatment", ""),
+                "tests": conversation_summary.get("tests", ""),
+                "prescription": conversation_summary.get("prescription", ""),
+                "next_steps": conversation_summary.get("next_steps", "")
             }
-        )
+            existing_report.status = ReportStatus.PENDING_REVIEW
+            db.commit()
+            db.refresh(existing_report)
+            summary_report = existing_report
+            print(f"Report ID: {summary_report.report_id} UPDATED")
+        else:
+            # Create new conversation transcript report
+            print(f"=== CREATING NEW CONVERSATION REPORT ===")
+            summary_report = SummaryReport(
+                encounter_id=encounter_id,
+                report_type=ReportType.CONVERSATION_TRANSCRIPT,
+                status=ReportStatus.PENDING_REVIEW,  # Needs doctor review
+                priority=None,  # No priority assessment for conversation reports
+                content={
+                    "transcription": transcription_text,  # Full transcript with speaker labels
+                    "symptoms": conversation_summary.get("symptoms", ""),
+                    "diagnosis": conversation_summary.get("diagnosis", ""),
+                    "treatment": conversation_summary.get("treatment", ""),
+                    "tests": conversation_summary.get("tests", ""),
+                    "prescription": conversation_summary.get("prescription", ""),
+                    "next_steps": conversation_summary.get("next_steps", "")
+                }
+            )
 
-        db.add(summary_report)
-        db.commit()
-        db.refresh(summary_report)
+            db.add(summary_report)
+            db.commit()
+            db.refresh(summary_report)
+            print(f"Report ID: {summary_report.report_id}")
 
-        print(f"=== SUMMARY REPORT CREATED ===")
-        print(f"Report ID: {summary_report.report_id}")
         print(f"Status: {summary_report.status}")
-        print(f"=============================")
+        print(f"====================================")
 
         return {
             "transcription": {

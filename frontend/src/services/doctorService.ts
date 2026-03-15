@@ -110,6 +110,30 @@ export const doctorService = {
   },
 
   /**
+   * Add a new patient (creates user + profile, sets primary doctor to caller)
+   */
+  async addPatient(data: {
+    phone_number: string;
+    first_name: string;
+    last_name: string;
+    date_of_birth: string;
+    gender: string;
+    general_health_issues?: string;
+  }): Promise<any> {
+    return await apiService.post(API_ENDPOINTS.DOCTOR_ADD_PATIENT, data);
+  },
+
+  /**
+   * Update a patient's primary care doctor
+   */
+  async updatePrimaryDoctor(patientId: string, doctorId: string): Promise<any> {
+    return await apiService.patch(
+      `${API_ENDPOINTS.DOCTOR_UPDATE_PRIMARY_DOCTOR(patientId)}?doctor_id=${doctorId}`,
+      {},
+    );
+  },
+
+  /**
    * Create a basic doctor profile when patient's doctor is not in list
    */
   async createBasicDoctor(name: string, phone: string): Promise<{user_id: string; first_name: string; last_name: string}> {

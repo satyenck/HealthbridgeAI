@@ -20,7 +20,7 @@ from app.models_v2 import (
 from app.schemas_v2 import (
     PatientProfileResponse, PatientTimelineResponse,
     ComprehensiveEncounterResponse, SummaryReportResponse,
-    DoctorProfileResponse
+    DoctorProfileResponse, DoctorAddPatientRequest
 )
 from app.auth import get_current_doctor, get_current_doctor_or_assistant
 
@@ -252,17 +252,152 @@ async def get_my_patients(
         ).distinct().all()
 
     # Extract patient_id values from tuples
-    patient_ids = [pid[0] for pid in patient_ids]
+    encounter_patient_ids = set(pid[0] for pid in patient_ids)
 
-    if not patient_ids:
+    # Also include patients where this doctor (or associated doctors) is set as primary doctor
+    if current_doctor.role == UserRole.DOCTOR_ASSISTANT:
+        primary_doctor_ids = doctor_ids
+    else:
+        primary_doctor_ids = [current_doctor.user_id]
+
+    primary_patient_ids = set(
+        pid[0] for pid in db.query(PatientProfile.user_id).filter(
+            PatientProfile.primary_doctor_id.in_(primary_doctor_ids)
+        ).all()
+    )
+
+    all_patient_ids = list(encounter_patient_ids | primary_patient_ids)
+
+    if not all_patient_ids:
         return []
 
     # Get patient profiles
     patients = db.query(PatientProfile).filter(
-        PatientProfile.user_id.in_(patient_ids)
+        PatientProfile.user_id.in_(all_patient_ids)
     ).all()
 
     return patients
+
+
+@router.post("/patients/add", response_model=PatientProfileResponse)
+async def add_patient(
+    request: DoctorAddPatientRequest,
+    current_doctor: User = Depends(get_current_doctor),
+    db: Session = Depends(get_db)
+):
+    """
+    Doctor adds a new patient by phone number.
+    - If phone number already has a patient profile, returns error.
+    - If phone number exists as a user but no profile, creates the profile.
+    - If phone number is new, creates user + profile.
+    - Sets primary_doctor to the calling doctor by default.
+    """
+    import uuid as uuid_lib
+
+    # Check if a user with this phone already exists
+    existing_user = db.query(User).filter(
+        User.phone_number == request.phone_number
+    ).first()
+
+    if existing_user:
+        # Check if a patient profile already exists
+        existing_profile = db.query(PatientProfile).filter(
+            PatientProfile.user_id == existing_user.user_id
+        ).first()
+        if existing_profile:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A patient with this phone number already exists"
+            )
+        # User exists but no profile — create profile only
+        patient_user = existing_user
+    else:
+        # Create new user with PATIENT role
+        patient_user = User(
+            user_id=uuid_lib.uuid4(),
+            phone_number=request.phone_number,
+            role=UserRole.PATIENT,
+            is_active=True
+        )
+        db.add(patient_user)
+        db.flush()
+
+    # Create patient profile with doctor as primary
+    profile = PatientProfile(
+        user_id=patient_user.user_id,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        date_of_birth=request.date_of_birth,
+        gender=request.gender,
+        general_health_issues=request.general_health_issues,
+        primary_doctor_id=current_doctor.user_id
+    )
+    db.add(profile)
+    db.commit()
+    db.refresh(profile)
+
+    # Build response dict (same pattern as other patient profile endpoints)
+    primary_doctor_name = None
+    doctor_profile = db.query(DoctorProfile).filter(
+        DoctorProfile.user_id == current_doctor.user_id
+    ).first()
+    if doctor_profile:
+        primary_doctor_name = f"Dr. {doctor_profile.first_name} {doctor_profile.last_name}"
+
+    return {
+        "user_id": profile.user_id,
+        "first_name": profile.first_name,
+        "last_name": profile.last_name,
+        "date_of_birth": profile.date_of_birth,
+        "gender": profile.gender,
+        "general_health_issues": profile.general_health_issues,
+        "primary_doctor_id": profile.primary_doctor_id,
+        "primary_doctor_name": primary_doctor_name,
+        "notes": profile.notes,
+        "created_at": profile.created_at,
+        "updated_at": profile.updated_at,
+    }
+
+
+@router.patch("/patients/{patient_id}/primary-doctor")
+async def update_patient_primary_doctor(
+    patient_id: UUID,
+    doctor_id: UUID,
+    current_doctor: User = Depends(get_current_doctor),
+    db: Session = Depends(get_db)
+):
+    """
+    Doctor updates a patient's primary care doctor.
+    Can set to any doctor or clear by passing the current doctor's own ID to unset.
+    """
+    profile = db.query(PatientProfile).filter(
+        PatientProfile.user_id == patient_id
+    ).first()
+
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found"
+        )
+
+    # Verify new doctor exists
+    new_doctor = db.query(DoctorProfile).filter(
+        DoctorProfile.user_id == doctor_id
+    ).first()
+    if not new_doctor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Doctor not found"
+        )
+
+    profile.primary_doctor_id = doctor_id
+    db.commit()
+
+    return {
+        "patient_id": str(patient_id),
+        "primary_doctor_id": str(doctor_id),
+        "primary_doctor_name": f"Dr. {new_doctor.first_name} {new_doctor.last_name}"
+    }
 
 
 @router.get("/patients/search", response_model=List[PatientProfileResponse])
@@ -862,13 +997,21 @@ async def get_doctor_stats(
                 "reviewed_reports": 0
             }
 
-        # Get unique patient count from encounters associated doctors have reviewed
-        total_patients = db.query(func.count(func.distinct(Encounter.patient_id))).join(
-            SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
-        ).filter(
-            Encounter.doctor_id.in_(doctor_ids),
-            SummaryReport.status == ReportStatus.REVIEWED
-        ).scalar()
+        # Get unique patient count: reviewed encounters + primary doctor patients
+        encounter_pids = set(
+            pid[0] for pid in db.query(Encounter.patient_id).join(
+                SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
+            ).filter(
+                Encounter.doctor_id.in_(doctor_ids),
+                SummaryReport.status == ReportStatus.REVIEWED
+            ).distinct().all()
+        )
+        primary_pids = set(
+            pid[0] for pid in db.query(PatientProfile.user_id).filter(
+                PatientProfile.primary_doctor_id.in_(doctor_ids)
+            ).all()
+        )
+        total_patients = len(encounter_pids | primary_pids)
 
         # Get consultations (reviewed reports by associated doctors)
         consultations = db.query(func.count(SummaryReport.report_id)).join(
@@ -896,13 +1039,21 @@ async def get_doctor_stats(
         ).scalar()
     else:
         # Regular doctor - get their own stats
-        # Get unique patient count from encounters this doctor has reviewed
-        total_patients = db.query(func.count(func.distinct(Encounter.patient_id))).join(
-            SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
-        ).filter(
-            Encounter.doctor_id == current_doctor.user_id,
-            SummaryReport.status == ReportStatus.REVIEWED
-        ).scalar()
+        # Get unique patient count: reviewed encounters + primary doctor patients
+        encounter_pids = set(
+            pid[0] for pid in db.query(Encounter.patient_id).join(
+                SummaryReport, Encounter.encounter_id == SummaryReport.encounter_id
+            ).filter(
+                Encounter.doctor_id == current_doctor.user_id,
+                SummaryReport.status == ReportStatus.REVIEWED
+            ).distinct().all()
+        )
+        primary_pids = set(
+            pid[0] for pid in db.query(PatientProfile.user_id).filter(
+                PatientProfile.primary_doctor_id == current_doctor.user_id
+            ).all()
+        )
+        total_patients = len(encounter_pids | primary_pids)
 
         # Get consultations (reviewed reports by this doctor)
         consultations = db.query(func.count(SummaryReport.report_id)).join(
@@ -949,7 +1100,7 @@ def _calculate_vitals_trend(encounters: List[Encounter], db: Session) -> dict:
     encounter_ids = [e.encounter_id for e in encounters]
 
     if not encounter_ids:
-        return {}
+        return None
 
     # Get all vitals for these encounters
     vitals = db.query(VitalsLog).filter(

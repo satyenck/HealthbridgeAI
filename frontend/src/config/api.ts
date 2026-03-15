@@ -80,6 +80,8 @@ export const API_ENDPOINTS = {
   DOCTOR_PATIENT_PROFILE: (id: string) => `/api/doctor/patients/${id}`,
   DOCTOR_PATIENT_TIMELINE: (id: string) => `/api/doctor/patients/${id}/timeline`,
   DOCTOR_PATIENT_DOCUMENTS: (id: string) => `/api/doctor/patients/${id}/documents`,
+  DOCTOR_ADD_PATIENT: '/api/doctor/patients/add',
+  DOCTOR_UPDATE_PRIMARY_DOCTOR: (patientId: string) => `/api/doctor/patients/${patientId}/primary-doctor`,
   DOCTOR_PENDING_REPORTS: '/api/doctor/reports/pending',
   DOCTOR_REVIEWED_REPORTS: '/api/doctor/reports/my-reviewed',
   DOCTOR_STATS: '/api/doctor/stats',

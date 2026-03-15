@@ -10,12 +10,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {doctorService} from '../../services/doctorService';
 import {PatientProfile} from '../../types';
 import {calculateAge} from '../../utils/dateHelpers';
 
 export const MyPatientsScreen = ({navigation}: any) => {
+  const insets = useSafeAreaInsets();
   const [patients, setPatients] = useState<PatientProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,6 +104,11 @@ export const MyPatientsScreen = ({navigation}: any) => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       />
+      <TouchableOpacity
+        style={[styles.fab, {bottom: 24 + insets.bottom}]}
+        onPress={() => navigation.navigate('AddPatient')}>
+        <Icon name="person-add" size={24} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -163,6 +170,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     fontStyle: 'italic',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#00ACC1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
   emptyState: {
     alignItems: 'center',

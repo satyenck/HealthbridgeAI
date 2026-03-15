@@ -271,12 +271,40 @@ async def get_my_patients(
     if not all_patient_ids:
         return []
 
-    # Get patient profiles
+    # Get patient profiles sorted alphabetically
     patients = db.query(PatientProfile).filter(
         PatientProfile.user_id.in_(all_patient_ids)
-    ).all()
+    ).order_by(PatientProfile.first_name.asc(), PatientProfile.last_name.asc()).all()
 
-    return patients
+    # Calculate patient_since: earliest encounter with this doctor, fallback to profile created_at
+    earliest_encounters = db.query(
+        Encounter.patient_id,
+        func.min(Encounter.created_at).label("first_encounter")
+    ).filter(
+        Encounter.patient_id.in_(all_patient_ids),
+        Encounter.doctor_id.in_(primary_doctor_ids)
+    ).group_by(Encounter.patient_id).all()
+
+    since_map = {str(row.patient_id): row.first_encounter for row in earliest_encounters}
+
+    result = []
+    for p in patients:
+        data = {
+            "user_id": p.user_id,
+            "first_name": p.first_name,
+            "last_name": p.last_name,
+            "date_of_birth": p.date_of_birth,
+            "gender": p.gender,
+            "general_health_issues": p.general_health_issues,
+            "primary_doctor_id": p.primary_doctor_id,
+            "notes": p.notes,
+            "created_at": p.created_at,
+            "updated_at": p.updated_at,
+            "patient_since": since_map.get(str(p.user_id), p.created_at),
+        }
+        result.append(data)
+
+    return result
 
 
 @router.post("/patients/add", response_model=PatientProfileResponse)

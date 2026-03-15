@@ -1,6 +1,8 @@
 import axios, {AxiosInstance} from 'axios';
+import {Alert} from 'react-native';
 import {API_CONFIG} from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {authEvents, AUTH_EVENT_SESSION_EXPIRED} from './authEvents';
 
 class ApiService {
   private client: AxiosInstance;
@@ -37,6 +39,12 @@ class ApiService {
       async error => {
         if (error.response?.status === 401) {
           await AsyncStorage.removeItem('access_token');
+          await AsyncStorage.removeItem('user_role');
+          Alert.alert(
+            'Session Expired',
+            'Your session has expired. Please log in again.',
+            [{text: 'OK', onPress: () => authEvents.emit(AUTH_EVENT_SESSION_EXPIRED)}],
+          );
         }
         return Promise.reject(error);
       },

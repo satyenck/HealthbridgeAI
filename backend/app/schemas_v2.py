@@ -138,6 +138,7 @@ class PatientProfileResponse(PatientProfileBase):
     primary_doctor_name: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    patient_since: Optional[datetime] = None  # Earliest encounter with the viewing doctor
 
     class Config:
         from_attributes = True
@@ -336,6 +337,7 @@ class SummaryReportContent(BaseModel):
     tests: Optional[str] = None
     prescription: Optional[str] = None
     next_steps: str
+    transcription: Optional[str] = None  # Full conversation transcript for live encounters
 
 
 class SummaryReportBase(BaseModel):

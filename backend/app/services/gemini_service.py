@@ -244,25 +244,24 @@ IMPORTANT: Always include disclaimers that this is not a substitute for professi
 
 {context}
 
-Please provide a response in the following JSON format with ALL 7 sections:
+Please provide a response in the following JSON format with ALL 6 sections:
 {{
-    "symptoms": "Detailed list of identified symptoms with severity",
-    "diagnosis": "Possible diagnoses with appropriate medical disclaimers and reasoning",
-    "treatment": "CONCISE bullet points (2-4 bullets) for treatment recommendations. Format: • Each point on new line",
-    "tests": "CONCISE bullet points (2-4 bullets) for recommended tests. Format: • Test name - reason. Use 'None required' if not applicable",
-    "prescription": "CONCISE bullet points (2-3 bullets) for medications. Format: • Medicine name - dosage - frequency. Use 'None required' if not applicable",
-    "next_steps": "CONCISE bullet points (2-4 bullets) for action items. Format: • Clear action with timeline"
+    "symptoms": "CONCISE bullet points (2-5 bullets) listing key symptoms with severity. Format: • Symptom - severity/duration",
+    "diagnosis": "CONCISE bullet points (1-3 bullets) for possible diagnoses with brief reasoning. Format: • Diagnosis - brief reasoning. Always note these are preliminary.",
+    "treatment": "CONCISE bullet points (2-4 bullets) for treatment recommendations. Format: • Recommendation",
+    "tests": "CONCISE bullet points (2-4 bullets) for recommended tests. Format: • Test name - reason. Use '• None required' if not applicable",
+    "prescription": "CONCISE bullet points (2-3 bullets) for medications. Format: • Medicine - dosage - frequency. Use '• None required' if not applicable",
+    "next_steps": "CONCISE bullet points (2-4 bullets) for action items. Format: • Action with timeline"
 }}
 
 IMPORTANT FORMATTING:
-- Keep treatment, tests, prescription, and next_steps as brief bullet points
-- Use • symbol for bullets
+- ALL sections must use bullet points
+- Use • symbol for every bullet
 - Each bullet on a new line
-- Maximum 2-4 bullets per section
-- Be specific but concise
-- Symptoms and diagnosis can be more detailed
+- Maximum 2-5 bullets per section — be concise
+- No paragraphs, no long sentences
 
-Ensure all fields are filled with meaningful content or explicitly state 'None required' where applicable."""
+Ensure all fields are filled with meaningful content or explicitly state '• None required' where applicable."""
 
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
 

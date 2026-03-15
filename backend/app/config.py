@@ -6,10 +6,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str
 
-    # JWT (HIPAA Compliance - 15 minute session timeout)
+    # JWT
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 15 minutes for HIPAA compliance
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 120  # 2 hours
 
     # Google Gemini AI
     GEMINI_API_KEY: str
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # Redis (Session Management)
     REDIS_URL: Optional[str] = "redis://localhost:6379/0"
-    SESSION_TIMEOUT_SECONDS: int = 900  # 15 minutes
+    SESSION_TIMEOUT_SECONDS: int = 7200  # 2 hours
 
     # App
     APP_NAME: str = "HealthbridgeAI"

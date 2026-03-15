@@ -16,6 +16,11 @@ import {doctorService} from '../../services/doctorService';
 import {PatientProfile} from '../../types';
 import {calculateAge} from '../../utils/dateHelpers';
 
+const formatPatientSince = (dateStr: string): string => {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+};
+
 export const MyPatientsScreen = ({navigation}: any) => {
   const insets = useSafeAreaInsets();
   const [patients, setPatients] = useState<PatientProfile[]>([]);
@@ -65,6 +70,11 @@ export const MyPatientsScreen = ({navigation}: any) => {
             {item.general_health_issues && (
               <Text style={styles.healthIssues} numberOfLines={1}>
                 {item.general_health_issues}
+              </Text>
+            )}
+            {item.patient_since && (
+              <Text style={styles.patientSince}>
+                Patient since {formatPatientSince(item.patient_since)}
               </Text>
             )}
           </View>
@@ -170,6 +180,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     fontStyle: 'italic',
+  },
+  patientSince: {
+    fontSize: 11,
+    color: '#00ACC1',
+    marginTop: 3,
   },
   fab: {
     position: 'absolute',

@@ -123,7 +123,6 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
       // Reload encounter to show updated data
       await loadEncounter();
       setEditModalVisible(false);
-      Alert.alert('Success', 'Symptoms updated successfully');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update symptoms');
     } finally {
@@ -150,7 +149,6 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
       setDoctorModalVisible(false);
       await encounterService.assignDoctor(encounterId, doctor.user_id);
       await loadEncounter();
-      Alert.alert('Success', `Dr. ${doctor.first_name} ${doctor.last_name} has been assigned`);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to assign doctor');
     } finally {
@@ -411,6 +409,32 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
           )}
         </View>
 
+        {/* Original Transcript / Patient Description */}
+        {hasSummary && (
+          (() => {
+            const isConversation = encounter.summary_report!.report_type === 'CONVERSATION_TRANSCRIPT';
+            const transcript = encounter.summary_report!.content.transcription;
+            const symptoms = encounter.summary_report!.content.symptoms;
+            const text = isConversation ? transcript : symptoms;
+            if (!text) return null;
+            return (
+              <View style={styles.card}>
+                <View style={styles.transcriptHeader}>
+                  <Icon
+                    name={isConversation ? 'record-voice-over' : 'speaker-notes'}
+                    size={18}
+                    color="#00ACC1"
+                  />
+                  <Text style={styles.transcriptTitle}>
+                    {isConversation ? 'Conversation Transcript' : 'Patient Description'}
+                  </Text>
+                </View>
+                <Text style={styles.transcriptText}>{text}</Text>
+              </View>
+            );
+          })()
+        )}
+
         {/* Summary Report */}
         {hasSummary && (
           <View>
@@ -571,7 +595,6 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
         encounterId={encounterId}
         onClose={() => setShowLabModal(false)}
         onSuccess={() => {
-          Alert.alert('Success', 'Lab order sent successfully');
           loadEncounter();
         }}
         initialInstructions={encounter?.summary_report?.content?.tests || ''}
@@ -582,7 +605,6 @@ export const EncounterDetailScreen = ({route, navigation}: any) => {
         encounterId={encounterId}
         onClose={() => setShowPharmacyModal(false)}
         onSuccess={() => {
-          Alert.alert('Success', 'Prescription sent successfully');
           loadEncounter();
         }}
         initialInstructions={encounter?.summary_report?.content?.prescription || ''}
@@ -1021,6 +1043,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     marginTop: 16,
+  },
+  transcriptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  transcriptTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#00ACC1',
+    marginLeft: 6,
+  },
+  transcriptText: {
+    fontSize: 14,
+    color: '#444',
+    lineHeight: 22,
+    backgroundColor: '#F5FDFE',
+    borderRadius: 8,
+    padding: 10,
   },
   labButton: {
     borderWidth: 1,

@@ -82,6 +82,7 @@ export interface PatientProfile {
   notes?: string;
   created_at: string;
   updated_at?: string;
+  patient_since?: string;
 }
 
 export interface Doctor {
@@ -174,11 +175,13 @@ export interface SummaryReportContent {
   tests?: string;
   prescription?: string;
   next_steps: string;
+  transcription?: string;
 }
 
 export interface SummaryReport {
   report_id: string;
   encounter_id: string;
+  report_type?: string;
   status: ReportStatus;
   priority?: Priority;
   content: SummaryReportContent;

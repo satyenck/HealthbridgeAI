@@ -3,6 +3,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {View, ActivityIndicator, StyleSheet} from 'react-native';
 import {authService} from '../services/authService';
+import {authEvents, AUTH_EVENT_SESSION_EXPIRED} from '../services/authEvents';
 import {UserRole} from '../types';
 
 // Auth screens (existing)
@@ -26,6 +27,15 @@ export const AppNavigator = () => {
 
   useEffect(() => {
     checkAuthStatus();
+
+    const handleSessionExpired = () => {
+      setIsAuthenticated(false);
+      setUserRole(null);
+    };
+    authEvents.on(AUTH_EVENT_SESSION_EXPIRED, handleSessionExpired);
+    return () => {
+      authEvents.off(AUTH_EVENT_SESSION_EXPIRED, handleSessionExpired);
+    };
   }, []);
 
   const checkAuthStatus = async () => {
